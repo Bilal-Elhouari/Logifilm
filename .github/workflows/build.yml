@@ -2,8 +2,9 @@ name: Build & Release
 
 on:
   push:
-    tags:
-      - 'v*' # Trigger only when pushing a tag like v1.0.0
+    branches: [ "main" ]
+    tags: [ "v*" ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -39,11 +40,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # UPLOAD ARTIFACTS (Garde les fichiers pour téléchargement)
-      - name: Upload Artifacts
+      # UPLOAD ARTIFACTS (Windows)
+      - name: Upload Windows Artifact
+        if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.os }}-build
-          path: |
-            release/*.exe
-            release/*.dmg
+          name: windows-build
+          path: release/*.exe
+
+      # UPLOAD ARTIFACTS (Mac)
+      - name: Upload Mac Artifact
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v3
+        with:
+          name: mac-build
+          path: release/*.dmg
