@@ -5,12 +5,13 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
-    transparent: true,
-    titleBarStyle: "hiddenInset",
-    vibrancy: "sidebar", // ou "ultra-dark", "under-window", "popover"
-    backgroundColor: "#00000000",
+    transparent: false, // ❌ Désactivé pour le debug
+    titleBarStyle: "default", // Remis par défaut
+    // vibrancy: "sidebar", 
+    backgroundColor: "#1a1a1a", // Fond noir/gris
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
+      devTools: true, // Force DevTools functionality
     },
   });
 
@@ -18,6 +19,8 @@ function createWindow() {
     win.loadURL("http://localhost:5173");
   } else {
     win.loadFile(path.join(__dirname, "../dist/index.html"));
+    // 🛠️ DEBUG : Ouvrir la console même en production
+    win.webContents.openDevTools();
   }
 }
 
