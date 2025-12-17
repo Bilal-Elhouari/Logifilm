@@ -1,11 +1,12 @@
 import { motion } from "framer-motion";
+import windowsBg from "@/assets/windows-bg.jpg";
 
 export default function StartPageWindows({ onContinue }: { onContinue: () => void }) {
   return (
     <div
       className="relative h-screen w-full flex flex-col items-center justify-center text-white"
       style={{
-        backgroundImage: "url('/windows11.jpg')",
+        backgroundImage: `url(${windowsBg})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}

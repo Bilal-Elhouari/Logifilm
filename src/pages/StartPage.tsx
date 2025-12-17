@@ -1,11 +1,12 @@
 import { motion } from "framer-motion";
+import macBg from "@/assets/mac-bg.jpg";
 
 export default function StartPage({ onContinue }: { onContinue: () => void }) {
   return (
     <div
       className="relative h-screen w-full overflow-hidden flex flex-col items-center justify-center"
       style={{
-        backgroundImage: "url('/macOS26 back.jpg')",
+        backgroundImage: `url(${macBg})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
@@ -13,47 +14,47 @@ export default function StartPage({ onContinue }: { onContinue: () => void }) {
       {/* Voile + flou */}
       <div className="absolute inset-0 backdrop-blur-[25px] bg-black/20" />
 
-   {/* LOGO TEXTE VERRE TRANSPARENT ET BRILLANT */}
-<motion.h1
+      {/* LOGO TEXTE VERRE TRANSPARENT ET BRILLANT */}
+      <motion.h1
 
 
-  initial={{ opacity: 0, y: -20, scale: 0.95 }}
-  animate={{ opacity: 1, y: 0, scale: 1 }}
-  transition={{ duration: 1.4, ease: "easeOut" }}
-  className="relative text-[96px] font-semibold select-none tracking-wide"
-  style={{
-    fontFamily:
-      "'SF Pro Display', 'Segoe UI', system-ui, -apple-system, sans-serif",
-    color: "transparent",
-    WebkitTextStroke: "1px rgba(255,255,255,0.3)", // contour doux
-    textShadow: `
+        initial={{ opacity: 0, y: -20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 1.4, ease: "easeOut" }}
+        className="relative text-[96px] font-semibold select-none tracking-wide"
+        style={{
+          fontFamily:
+            "'SF Pro Display', 'Segoe UI', system-ui, -apple-system, sans-serif",
+          color: "transparent",
+          WebkitTextStroke: "1px rgba(255,255,255,0.3)", // contour doux
+          textShadow: `
       0 2px 8px rgba(0,0,0,0.5),
       0 -1px 6px rgba(255,255,255,0.25),
       0 0 18px rgba(255,255,255,0.15)
     `,
-    filter:
-      "drop-shadow(0 3px 12px rgba(0,0,0,0.6)) brightness(1.2) contrast(1.1) saturate(1.1)",
-    mixBlendMode: "screen", // fusion lumineuse avec le fond
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-  }}
->
-  <motion.span
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    transition={{ delay: 0.5, duration: 1.8 }}
-    style={{
-      backgroundImage:
-        "linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.2) 100%)",
-      backgroundSize: "100% 100%",
-      WebkitBackgroundClip: "text",
-      WebkitTextFillColor: "transparent",
-      display: "inline-block",
-    }}
-  >
-    Logifilm
-  </motion.span>
-</motion.h1>
+          filter:
+            "drop-shadow(0 3px 12px rgba(0,0,0,0.6)) brightness(1.2) contrast(1.1) saturate(1.1)",
+          mixBlendMode: "screen", // fusion lumineuse avec le fond
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+        }}
+      >
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5, duration: 1.8 }}
+          style={{
+            backgroundImage:
+              "linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.2) 100%)",
+            backgroundSize: "100% 100%",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            display: "inline-block",
+          }}
+        >
+          Logifilm
+        </motion.span>
+      </motion.h1>
 
       {/* Animation de lumière */}
       <motion.div
