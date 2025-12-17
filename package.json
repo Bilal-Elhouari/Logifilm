@@ -72,7 +72,8 @@
     "win": {
       "target": [
         "nsis"
-      ]
+      ],
+      "icon": "assets/logoBureau.ico"
     },
     "mac": {
       "target": [
