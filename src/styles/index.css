@@ -1,0 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------
+   🔥 AJOUT DES POLICES macOS SF PRO
+------------------------------ */
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("/fonts/SFPro/SFProDisplay-Regular.otf") format("opentype");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("/fonts/SFPro/SFProDisplay-Medium.otf") format("opentype");
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("/fonts/SFPro/SFProDisplay-Semibold.otf") format("opentype");
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: "SF Pro Text";
+  src: url("/fonts/SFPro/SFProText-Regular.otf") format("opentype");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "SF Pro Text";
+  src: url("/fonts/SFPro/SFProText-Medium.otf") format("opentype");
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: "SF Pro Text";
+  src: url("/fonts/SFPro/SFProText-Semibold.otf") format("opentype");
+  font-weight: 600;
+}
+
+/* ------------------------------
+   🔥 FONT GLOBAL MAC
+------------------------------ */
+body {
+  font-family: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  transition: all 0.3s ease-in-out;
+  -webkit-font-smoothing: antialiased;
+  font-smooth: always;
+}
+
+/* ------------------------------
+   VARIABLES
+------------------------------ */
+:root {
+  --bg: linear-gradient(145deg, #e8f0ff 0%, #d9e7ff 100%);
+  --surface: rgba(255, 255, 255, 0.55);
+  --border: rgba(255, 255, 255, 0.35);
+  --text: #1c1c1e;
+  --accent: #007aff;
+  --accent-ghost: rgba(0, 122, 255, 0.1);
+  --radius: 18px;
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+}
+
+/* ------------------------------
+   MODE WINDOWS
+------------------------------ */
+html[data-platform="win"] {
+  --bg: radial-gradient(circle at 20% 20%, #1e1f31 0%, #0d0e1a 90%);
+  --surface: rgba(25, 26, 40, 0.9);
+  --border: rgba(120, 120, 255, 0.25);
+  --text: #e7e7f0;
+  --accent: #8b5cf6;
+  --accent-ghost: rgba(139, 92, 246, 0.15);
+  --radius: 8px;
+  --shadow: 0 0 0 1px rgba(139, 92, 246, 0.4), 0 15px 60px rgba(0, 0, 0, 0.6);
+}
+
+/* ------------------------------
+   SURFACE MAC GLASS
+------------------------------ */
+.surface {
+  background: var(--surface);
+  backdrop-filter: blur(25px) saturate(160%);
+  -webkit-backdrop-filter: blur(25px) saturate(160%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: all 0.3s ease-in-out;
+}
+
+/* ------------------------------
+   ANIMATIONS
+------------------------------ */
+@keyframes pulse-slow {
+
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    opacity: 0.6;
+    transform: translateY(-10px) scale(1.05);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 6s ease-in-out infinite;
+}
+
+/* ------------------------------
+   DARK MODE macOS
+------------------------------ */
+@media (prefers-color-scheme: dark) {
+  body {
+    background: linear-gradient(180deg, #1a1b1f 0%, #0f1014 100%);
+    color-scheme: dark;
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "name": "crew-management-software",
+  "version": "1.0.0",
+  "description": "Desktop application for crew management (React + TypeScript + Tailwind + Vite + Electron).",
+  "main": "dist-electron/main.js",
+  "author": "",
+  "license": "ISC",
+  "scripts": {
+    "dev": "concurrently \"vite\" \"wait-on tcp:5173 && electron .\"",
+    "build": "vite build && tsc -p tsconfig.electron.json && electron-builder",
+    "build:mac": "vite build --mode mac && tsc -p tsconfig.electron.json && electron-builder --mac",
+    "build:win": "vite build --mode windows && tsc -p tsconfig.electron.json && electron-builder --win",
+    "start": "electron ."
+  },
+  "keywords": [
+    "electron",
+    "vite",
+    "react",
+    "typescript",
+    "tailwindcss",
+    "desktop-app",
+    "crew-management"
+  ],
+  "dependencies": {
+    "@supabase/supabase-js": "^2.86.0",
+    "@types/file-saver": "^2.0.7",
+    "file-saver": "^2.0.5",
+    "framer-motion": "^12.23.24",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.4",
+    "lucide-react": "^0.553.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.5",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.1.0",
+    "autoprefixer": "^10.4.21",
+    "concurrently": "^9.2.1",
+    "dotenv": "^17.2.3",
+    "electron": "^39.2.3",
+    "electron-builder": "^26.0.12",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.14",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.2",
+    "wait-on": "^9.0.3"
+  },
+  "build": {
+    "appId": "com.crew.management",
+    "productName": "Crew Management Software",
+    "directories": {
+      "buildResources": "assets",
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "exports/",
+        "to": "exports",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "assets/icon.icns"
+    }
+  }
+}
