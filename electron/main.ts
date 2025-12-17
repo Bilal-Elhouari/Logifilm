@@ -11,9 +11,14 @@ function createWindow() {
     autoHideMenuBar: true, // 🙈 Cache la barre de menu (File, Edit...)
     // vibrancy: "sidebar", 
     backgroundColor: "#1a1a1a", // Fond noir/gris
-    icon: process.env.NODE_ENV === "development"
-      ? path.join(__dirname, "../public/logo-glass.png")
-      : path.join(__dirname, "../dist/logo-glass.png"),
+    icon: (() => {
+      const isDev = process.env.NODE_ENV === "development";
+      const isMac = process.platform === "darwin";
+      const name = isMac ? "logoFenetreMac.icns" : "logoFenetre.ico";
+      return isDev
+        ? path.join(__dirname, `../public/${name}`)
+        : path.join(__dirname, `../dist/${name}`);
+    })(),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       devTools: true, // Force DevTools functionality
