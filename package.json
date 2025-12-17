@@ -77,7 +77,8 @@
     "mac": {
       "target": [
         "dmg"
-      ]
+      ],
+      "icon": "assets/logoBureauMac.icns"
     }
   }
 }
