@@ -19,8 +19,6 @@ function createWindow() {
     win.loadURL("http://localhost:5173");
   } else {
     win.loadFile(path.join(__dirname, "../dist/index.html"));
-    // 🛠️ DEBUG : Ouvrir la console même en production
-    win.webContents.openDevTools();
   }
 }
 
