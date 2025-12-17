@@ -5,8 +5,10 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
+
     transparent: false, // ❌ Désactivé pour le debug
     titleBarStyle: "default", // Remis par défaut
+    autoHideMenuBar: true, // 🙈 Cache la barre de menu (File, Edit...)
     // vibrancy: "sidebar", 
     backgroundColor: "#1a1a1a", // Fond noir/gris
     webPreferences: {

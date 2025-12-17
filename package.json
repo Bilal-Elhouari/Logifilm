@@ -50,8 +50,8 @@
     "wait-on": "^9.0.3"
   },
   "build": {
-    "appId": "com.crew.management",
-    "productName": "Crew Management Software",
+    "appId": "com.logifilm.app",
+    "productName": "Logifilm",
     "directories": {
       "buildResources": "assets",
       "output": "release"
