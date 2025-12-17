@@ -11,7 +11,9 @@ function createWindow() {
     autoHideMenuBar: true, // 🙈 Cache la barre de menu (File, Edit...)
     // vibrancy: "sidebar", 
     backgroundColor: "#1a1a1a", // Fond noir/gris
-    icon: path.join(__dirname, "../public/logo-glass.png"), // 🖼️ LOGO DANS LA BARRE DES TÂCHES
+    icon: process.env.NODE_ENV === "development"
+      ? path.join(__dirname, "../public/logo-glass.png")
+      : path.join(__dirname, "../dist/logo-glass.png"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       devTools: true, // Force DevTools functionality
