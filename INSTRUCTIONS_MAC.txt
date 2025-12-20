@@ -1,0 +1,31 @@
+═══════════════════════════════════════════════════════════════
+                    LOGIFILM - Instructions d'installation Mac
+═══════════════════════════════════════════════════════════════
+
+1. INSTALLATION
+   - Ouvrez le fichier Logifilm.dmg
+   - Glissez l'application Logifilm dans le dossier Applications
+
+2. PREMIER LANCEMENT (IMPORTANT)
+   
+   Si vous voyez le message "Logifilm est endommagé et ne peut pas être ouvert",
+   ne vous inquiétez pas ! L'application fonctionne parfaitement.
+   
+   C'est simplement une sécurité de macOS pour les applications 
+   téléchargées depuis Internet.
+
+   SOLUTION :
+   
+   a) Ouvrez le Terminal (cherchez "Terminal" dans Spotlight avec Cmd + Espace)
+   
+   b) Copiez et collez cette commande exactement :
+   
+      xattr -cr /Applications/Logifilm.app
+   
+   c) Appuyez sur Entrée
+   
+   d) Fermez le Terminal et ouvrez Logifilm normalement !
+
+═══════════════════════════════════════════════════════════════
+   En cas de problème, contactez le support.
+═══════════════════════════════════════════════════════════════

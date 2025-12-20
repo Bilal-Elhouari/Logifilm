@@ -96,7 +96,7 @@ export default function AuthMac({ onLoginSuccess }: { onLoginSuccess: () => void
     <div
       className="relative h-screen w-full flex items-center justify-center"
       style={{
-        backgroundImage: "url('/macOS26 back.jpg')",
+        backgroundImage: "url('./macOS26-back.jpg')",
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
