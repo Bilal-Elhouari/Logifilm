@@ -34,19 +34,21 @@ export default function App() {
           path="/"
           element={
             (() => {
-              // 🚀 AUTO-REDIRECT BUILD
+              // 🚀 AUTO-REDIRECT BUILD (désactivé en développement)
               const platform = import.meta.env.VITE_PLATFORM;
-              if (platform === "mac") {
-                // Force redirect to Mac (React Router v6 trick inside element render isn't ideal but works for root)
-                // Better approach: use a wrapper component. let's render null and navigate in useEffect
-                // BUT for simplicity, let's use a Redirect Component pattern inline or Navigate
-                return <Navigate to="/mac" replace />;
-              }
-              if (platform === "windows") {
-                return <Navigate to="/windows" replace />;
+              const isDev = import.meta.env.DEV; // Vite fournit cette variable
+
+              // Ne rediriger automatiquement qu'en production
+              if (!isDev && platform) {
+                if (platform === "mac") {
+                  return <Navigate to="/mac" replace />;
+                }
+                if (platform === "windows") {
+                  return <Navigate to="/windows" replace />;
+                }
               }
 
-              // ELSE: SHOW SELECTION SCREEN
+              // ELSE: SHOW SELECTION SCREEN (toujours affiché en développement)
               return (
                 <motion.div
                   key="selector"
