@@ -1,15 +1,26 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { ChevronDown } from "lucide-react";
 import { api } from "../services/api";
 import { supabase } from "../supabaseClient";
+
+interface Company {
+  name: string;
+}
 
 export default function HomeMac() {
   const [selected, setSelected] = useState<string | null>(null);
   const [scale, setScale] = useState(1);
   const [companies, setCompanies] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  // State for new company form (CONTROLLED INPUTS)
+  const [newCompany, setNewCompany] = useState("");
+  const [newJob, setNewJob] = useState("");
 
   /* AUTH CHECK */
   useEffect(() => {
@@ -18,14 +29,14 @@ export default function HomeMac() {
       if (!data.session) navigate("/mac/auth");
     }
     checkAuth();
-  }, []);
+  }, [navigate]);
 
   /* LOAD COMPANIES */
   useEffect(() => {
     async function fetchCompanies() {
       try {
         const data = await api.getAllCompanies();
-        if (data) setCompanies(data.map((c: any) => c.name));
+        if (data) setCompanies(data.map((c: Company) => c.name));
       } catch (err) {
         console.error("Error fetching companies:", err);
       } finally {
@@ -48,41 +59,56 @@ export default function HomeMac() {
     return () => window.removeEventListener("resize", updateScale);
   }, []);
 
+  /* CLICK OUTSIDE TO CLOSE DROPDOWN */
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    if (dropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [dropdownOpen]);
+
   const showEnterButton = selected !== null && selected !== "";
 
   /* ENTER */
   const handleEnter = async () => {
-    const companyInput = document.querySelector(
-      'input[placeholder="Entrer votre company"]'
-    ) as HTMLInputElement;
-
-    const jobInput = document.querySelector(
-      'input[placeholder="Entrer votre job"]'
-    ) as HTMLInputElement;
-
-    let companyName =
-      selected === "Nouveau" ? companyInput?.value.trim() : selected;
-
     if (selected === "Nouveau") {
-      if (!companyName) return alert("Veuillez entrer un nom de company.");
+      const companyName = newCompany.trim();
+      const jobName = newJob.trim();
+
+      if (!companyName) {
+        alert("Veuillez entrer un nom de company.");
+        return;
+      }
+      if (!jobName) {
+        alert("Veuillez entrer un job.");
+        return;
+      }
 
       try {
         const createdCompany = await api.createCompany(companyName);
-
-        const jobName = jobInput?.value.trim();
-        if (!jobName) return alert("Veuillez entrer un job.");
-
         await api.createJob(jobName, createdCompany.id);
         navigate(`/mac/company/${companyName}`);
-        return;
-      } catch (err: any) {
-        alert("Erreur creation: " + (err.message || err));
-        return;
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        alert("Erreur creation: " + message);
       }
+      return;
     }
 
-    navigate(`/mac/company/${companyName}`);
+    navigate(`/mac/company/${selected}`);
   };
+
+  const handleSelect = (value: string) => {
+    setSelected(value);
+    setDropdownOpen(false);
+  };
+
+  const displayValue = selected || (loading ? "Chargement..." : "Sélectionnez une company");
 
   /* UI */
   return (
@@ -127,37 +153,89 @@ export default function HomeMac() {
           border border-white/50 dark:border-white/10
         "
         >
-          {/* SELECT COMPANY */}
-          <div className="mb-8">
+          {/* CUSTOM MACOS DROPDOWN */}
+          <div className="mb-8" ref={dropdownRef}>
             <div className="relative">
-              <select
-                className="
+              {/* DROPDOWN BUTTON */}
+              <button
+                type="button"
+                onClick={() => !loading && setDropdownOpen(!dropdownOpen)}
+                disabled={loading}
+                className={`
                   w-full px-4 py-3 rounded-2xl 
                   bg-white/80 dark:bg-white/5
                   border border-gray-300 dark:border-white/10 
-                  shadow-sm text-gray-700 dark:text-white
+                  shadow-sm
                   focus:outline-none appearance-none transition
-                "
-                value={selected || ""}
-                onChange={(e) => setSelected(e.target.value)}
-                disabled={loading}
+                  flex items-center justify-between
+                  ${loading ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-white dark:hover:bg-white/10"}
+                  ${selected ? "text-gray-800 dark:text-white" : "text-gray-500 dark:text-gray-400"}
+                `}
               >
-                <option value="" disabled>
-                  {loading ? "Chargement..." : "Sélectionnez une company"}
-                </option>
+                <span>{displayValue}</span>
+                <ChevronDown
+                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
+                />
+              </button>
 
-                {companies.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
+              {/* DROPDOWN MENU */}
+              <AnimatePresence>
+                {dropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="
+                      absolute top-full left-0 right-0 mt-2 z-50
+                      rounded-xl overflow-hidden
+                      bg-white dark:bg-[#1c1c1e]
+                      backdrop-blur-2xl
+                      border border-gray-200 dark:border-white/20
+                      shadow-[0_10px_40px_rgba(0,0,0,0.25)] dark:shadow-[0_10px_40px_rgba(0,0,0,0.5)]
+                      max-h-64 overflow-y-auto
+                    "
+                  >
+                    {/* COMPANY OPTIONS */}
+                    {companies.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => handleSelect(c)}
+                        className={`
+                          w-full text-left px-4 py-3 text-sm transition-colors
+                          ${selected === c
+                            ? "bg-blue-500 text-white"
+                            : "text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-white/10"
+                          }
+                        `}
+                      >
+                        {c}
+                      </button>
+                    ))}
 
-                <option value="Nouveau">Nouveau</option>
-              </select>
+                    {/* SEPARATOR */}
+                    {companies.length > 0 && (
+                      <div className="border-t border-gray-200 dark:border-white/10 my-1" />
+                    )}
 
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-300 pointer-events-none">
-                ▼
-              </div>
+                    {/* NOUVEAU OPTION */}
+                    <button
+                      type="button"
+                      onClick={() => handleSelect("Nouveau")}
+                      className={`
+                        w-full text-left px-4 py-3 text-sm font-medium transition-colors
+                        ${selected === "Nouveau"
+                          ? "bg-blue-500 text-white"
+                          : "text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/20"
+                        }
+                      `}
+                    >
+                      + Nouveau
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
 
@@ -171,8 +249,18 @@ export default function HomeMac() {
                 transition={{ duration: 0.35 }}
                 className="space-y-6 mb-8"
               >
-                <Field label="Company" placeholder="Entrer votre company" />
-                <Field label="Job" placeholder="Entrer votre job" />
+                <Field
+                  label="Company"
+                  placeholder="Entrer votre company"
+                  value={newCompany}
+                  onChange={setNewCompany}
+                />
+                <Field
+                  label="Job"
+                  placeholder="Entrer votre job"
+                  value={newJob}
+                  onChange={setNewJob}
+                />
               </motion.div>
             )}
           </AnimatePresence>
@@ -211,7 +299,14 @@ export default function HomeMac() {
   );
 }
 
-function Field({ label, placeholder }: { label: string; placeholder: string }) {
+interface FieldProps {
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (val: string) => void;
+}
+
+function Field({ label, placeholder, value, onChange }: FieldProps) {
   return (
     <div className="flex flex-col">
       <label className="text-sm font-medium text-black/70 dark:text-white/70 mb-1">
@@ -220,6 +315,8 @@ function Field({ label, placeholder }: { label: string; placeholder: string }) {
       <input
         type="text"
         placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
         className="
           w-full px-4 py-3 rounded-2xl 
           bg-gray-100 dark:bg-white/5 
@@ -231,3 +328,5 @@ function Field({ label, placeholder }: { label: string; placeholder: string }) {
     </div>
   );
 }
+
+

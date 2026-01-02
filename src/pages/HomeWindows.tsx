@@ -48,7 +48,7 @@ export default function HomeWindows() {
       try {
         const data = await api.getAllCompanies();
         if (data) {
-          setCompanies(data.map((c: any) => c.name));
+          setCompanies(data.map((c: { name: string }) => c.name));
         }
       } catch (error) {
         console.error("Error fetching companies:", error);

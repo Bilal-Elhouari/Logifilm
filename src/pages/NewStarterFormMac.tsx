@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Download, ChevronDown, Save } from "lucide-react";
@@ -329,7 +329,7 @@ export default function NewStarterFormMac() {
     // CLEAN FIELDS (NEW FIX 🔥)
     // -----------------------------
 
-    const leftFieldsRaw = [
+    const leftFieldsRaw: [string, string][] = [
       ["FIRST NAME :", formData.firstName],
       ["ID CARD NO :", formData.idCard],
       ["ADDRESS :", formData.address],
@@ -345,10 +345,9 @@ export default function NewStarterFormMac() {
       ["ACCT CODE :", formData.acctCode],
       ["ICE :", formData.ice],
       ["BANK ACCOUNT# :", formData.bankAccount],
-
     ];
 
-    const rightFieldsRaw = [
+    const rightFieldsRaw: [string, string][] = [
       ["NAME :", formData.lastName],
       ["DATE OF BIRTH :", formData.birth],
       ["PATENT :", formData.patent],
@@ -363,14 +362,13 @@ export default function NewStarterFormMac() {
       ["TRAVEL DATE :", formData.travelDate],
       ["IF :", formData.ifNumber],
       ["NOTE :", formData.note],
-
     ];
 
     // ✅ GARDE LES CHAMPS MÊME VIDES
-    const cleanField = ([label, value]) =>
-      label !== undefined &&
-      label !== null &&
-      label.toString().trim() !== "";
+    const cleanField = (entry: [string, string]): boolean =>
+      entry[0] !== undefined &&
+      entry[0] !== null &&
+      entry[0].toString().trim() !== "";
 
 
     const leftFields = leftFieldsRaw.filter(cleanField);
@@ -762,9 +760,23 @@ function InputMac({
 function SelectPerDayWeekMac({ value, onChange, dark }: SelectPerDayWeekMacProps) {
   const [open, setOpen] = useState(false);
   const options = ["DAY", "WEEK"];
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
 
   return (
-    <div className="flex flex-col relative">
+    <div className="flex flex-col relative" ref={dropdownRef}>
       <label
         className={`font-semibold mb-1 text-xs ${dark ? "text-gray-200" : "text-gray-800"
           }`}
@@ -835,6 +847,7 @@ function SelectPerDayWeekMac({ value, onChange, dark }: SelectPerDayWeekMacProps
 function SelectBankNameMac({ value, onChange, dark }: SelectBankNameMacProps) {
   const [open, setOpen] = useState(false);
   const [showCustom, setShowCustom] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const banks = [
     "Attijariwafa Bank",
@@ -857,8 +870,21 @@ function SelectBankNameMac({ value, onChange, dark }: SelectBankNameMacProps) {
     }
   }, [value]);
 
+  // Close on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
   return (
-    <div className="flex flex-col relative">
+    <div className="flex flex-col relative" ref={dropdownRef}>
       <label
         className={`font-semibold mb-1 text-xs ${dark ? "text-gray-200" : "text-gray-800"
           }`}
@@ -891,7 +917,7 @@ function SelectBankNameMac({ value, onChange, dark }: SelectBankNameMacProps) {
             exit={{ opacity: 0, y: -5 }}
             transition={{ duration: 0.15 }}
             className={`
-              absolute top-12 w-full rounded-xl overflow-hidden border shadow-xl z-20
+              absolute top-12 w-full rounded-xl overflow-hidden border shadow-xl z-20 max-h-60 overflow-y-auto
               ${dark ? "bg-[#1b1b1d] border-white/10" : "bg-white border-gray-200"}
             `}
           >

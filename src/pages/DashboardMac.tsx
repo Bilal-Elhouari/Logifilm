@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { JSX, useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Users, Wallet, LogOut, Plus, Trash2 } from "lucide-react";
 import { supabase } from "../supabaseClient";
 import { api } from "../services/api";
@@ -15,20 +15,31 @@ export default function DashboardMac() {
   const [loadingCompany, setLoadingCompany] = useState(true);
   const [addingJob, setAddingJob] = useState(false);
 
+  // Modal state for adding job
+  const [showAddJobModal, setShowAddJobModal] = useState(false);
+  const [newJobName, setNewJobName] = useState("");
+
   /* ---------------- FETCH COMPANY ---------------- */
   useEffect(() => {
     async function fetchCompany() {
+      if (!name) {
+        setLoadingCompany(false);
+        return;
+      }
+
+      // Use ilike for case-insensitive match
       const { data, error } = await supabase
         .from("companies")
         .select("id")
-        .eq("name", name)
+        .ilike("name", name)
         .single();
 
       if (error || !data) {
-        console.error("Error fetching company:", error);
+        console.error("Error fetching company:", error, "Name searched:", name);
         alert("Impossible de trouver cette company.");
         setCompanyId(null);
       } else {
+        console.log("Company found:", data.id);
         setCompanyId(data.id);
       }
 
@@ -66,16 +77,20 @@ export default function DashboardMac() {
 
   /* ---------------- ADD JOB ---------------- */
   async function addJob() {
-    if (!companyId) return alert("Company non chargée.");
+    if (!companyId) {
+      alert("Company non chargée.");
+      return;
+    }
 
-    const jobName = prompt("Nom du Job ?");
-    if (!jobName || !jobName.trim()) return;
+    if (!newJobName.trim()) {
+      return;
+    }
 
     setAddingJob(true);
 
     const { data, error } = await supabase
       .from("jobs")
-      .insert([{ name: jobName.trim(), company_id: companyId }])
+      .insert([{ name: newJobName.trim(), company_id: companyId }])
       .select("*")
       .single();
 
@@ -88,6 +103,8 @@ export default function DashboardMac() {
           (a.name || "").localeCompare(b.name || "")
         )
       );
+      setNewJobName("");
+      setShowAddJobModal(false);
     }
 
     setAddingJob(false);
@@ -209,7 +226,10 @@ export default function DashboardMac() {
             </h3>
 
             <button
-              onClick={addJob}
+              onClick={() => {
+                console.log("Button clicked! loadingCompany:", loadingCompany, "addingJob:", addingJob);
+                setShowAddJobModal(true);
+              }}
               disabled={loadingCompany || addingJob}
               className={`
                 flex items-center gap-2 px-4 py-2 rounded-xl shadow border transition
@@ -220,7 +240,7 @@ export default function DashboardMac() {
               `}
             >
               <Plus size={16} />
-              {addingJob ? "Ajout..." : "Ajouter Job"}
+              {addingJob ? "Ajout..." : "+ Ajouter Job"}
             </button>
           </div>
 
@@ -262,6 +282,89 @@ export default function DashboardMac() {
           )}
         </div>
       </motion.main>
+
+      {/* ---------------- ADD JOB MODAL ---------------- */}
+      <AnimatePresence>
+        {showAddJobModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowAddJobModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              className="
+                w-full max-w-md p-6 rounded-2xl
+                bg-white dark:bg-[#2a2a2e]
+                shadow-[0_20px_60px_rgba(0,0,0,0.3)]
+                border border-gray-200 dark:border-white/10
+              "
+            >
+              <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+                Nouveau Job
+              </h3>
+
+              <input
+                type="text"
+                value={newJobName}
+                onChange={(e) => setNewJobName(e.target.value)}
+                placeholder="Nom du job..."
+                autoFocus
+                className="
+                  w-full px-4 py-3 rounded-xl mb-4
+                  bg-gray-100 dark:bg-white/10
+                  border border-gray-300 dark:border-white/20
+                  text-gray-900 dark:text-white
+                  placeholder-gray-500 dark:placeholder-gray-400
+                  focus:outline-none focus:ring-2 focus:ring-blue-500
+                "
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newJobName.trim()) {
+                    addJob();
+                  }
+                }}
+              />
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    setShowAddJobModal(false);
+                    setNewJobName("");
+                  }}
+                  className="
+                    px-4 py-2 rounded-xl
+                    bg-gray-200 dark:bg-white/10
+                    text-gray-700 dark:text-white
+                    hover:bg-gray-300 dark:hover:bg-white/20
+                    transition
+                  "
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={addJob}
+                  disabled={!newJobName.trim() || addingJob}
+                  className={`
+                    px-4 py-2 rounded-xl font-medium transition
+                    ${!newJobName.trim() || addingJob
+                      ? "bg-blue-300 text-white cursor-not-allowed"
+                      : "bg-blue-500 text-white hover:bg-blue-600"
+                    }
+                  `}
+                >
+                  {addingJob ? "Création..." : "Créer"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
