@@ -49,7 +49,14 @@
     "vite": "^7.2.2",
     "wait-on": "^9.0.3"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bilal-Elhouari/Logifilm.git"
+  },
   "build": {
+    "publish": [
+      "github"
+    ],
     "appId": "com.logifilm.app",
     "productName": "Logifilm",
     "directories": {
