@@ -3,9 +3,14 @@ import path from "path";
 import { existsSync } from "fs";
 
 // Check if we're running from dist (production) or dev
-const isDev = !existsSync(path.join(__dirname, "../dist/index.html")) ||
-  process.argv.includes("--dev") ||
-  process.env.NODE_ENV === "development";
+// app.isPackaged is true when running from built executable, false in dev
+const isDev = !app.isPackaged;
+
+// Disable GPU cache in development to avoid permission errors
+if (isDev) {
+  app.commandLine.appendSwitch('disable-http-cache');
+  app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
+}
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -25,8 +30,13 @@ function createWindow() {
     })(),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
-      devTools: true,
+      devTools: false, // Disable DevTools completely to prevent auto-open
     },
+  });
+
+  // Prevent DevTools from opening automatically
+  win.webContents.on('devtools-opened', () => {
+    win.webContents.closeDevTools();
   });
 
   // Always try localhost first in dev mode
@@ -34,8 +44,8 @@ function createWindow() {
     console.log("🔧 Development mode: Loading from http://localhost:5173");
     win.loadURL("http://localhost:5173");
 
-    // Open DevTools in dev mode
-    win.webContents.openDevTools();
+    // Open DevTools in dev mode (commented out to prevent auto-open)
+    // win.webContents.openDevTools();
   } else {
     console.log("📦 Production mode: Loading from dist/index.html");
     win.loadFile(path.join(__dirname, "../dist/index.html"));

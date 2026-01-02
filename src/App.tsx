@@ -9,37 +9,46 @@ import HomeWindows from "./pages/HomeWindows";
 import DashboardMac from "./pages/DashboardMac";
 import DashboardWindows from "./pages/DashboardWindows";
 
-// 🧩 Auth macOS
+// 🧩 Auth
 import AuthMac from "./pages/AuthMac";
-
-// 🧩 Auth Windows ⭐ NOUVEAU
 import AuthWindows from "./pages/AuthWindows";
 
-// 🧩 Pages Crew Management
+// 🧩 Crew Management
 import CrewManagementMac from "./pages/CrewManagementMac";
 import CrewManagementWindows from "./pages/CrewManagementWindows";
 
-// 🧾 Formulaires / sous-pages
+// 🧾 Formulaires
 import NewStarterFormMac from "./pages/NewStarterFormMac";
 import NewStarterFormWindows from "./pages/NewStarterFormWindows";
 
 export default function App() {
   const navigate = useNavigate();
 
+  // 🔍 ENV
+  const isDev = import.meta.env.DEV;
+  const platform = import.meta.env.VITE_PLATFORM;
+
+  // 🧠 Détection Electron (clé de la solution)
+  const isElectron =
+    typeof window !== "undefined" &&
+    window.isElectron === true;
+
   return (
     <AnimatePresence mode="wait">
       <Routes>
-        {/* === PAGE DE SÉLECTION DE LA PLATEFORME (OU REDIRECTION AUTO) === */}
+        {/* ================================
+              ROOT — MENU / REDIRECTION
+        ================================= */}
         <Route
           path="/"
           element={
             (() => {
-              // 🚀 AUTO-REDIRECT BUILD (désactivé en développement)
-              const platform = import.meta.env.VITE_PLATFORM;
-              const isDev = import.meta.env.DEV; // Vite fournit cette variable
-
-              // Ne rediriger automatiquement qu'en production
-              if (!isDev && platform) {
+              /**
+               * AUTO-REDIRECT :
+               * - UNIQUEMENT pour le web
+               * - JAMAIS dans Electron
+               */
+              if (!isDev && platform && !isElectron) {
                 if (platform === "mac") {
                   return <Navigate to="/mac" replace />;
                 }
@@ -48,14 +57,16 @@ export default function App() {
                 }
               }
 
-              // ELSE: SHOW SELECTION SCREEN (toujours affiché en développement)
+              /**
+               * MENU (toujours affiché en dev et en Electron)
+               */
               return (
                 <motion.div
                   key="selector"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.6 }}
+                  transition={{ duration: 0.4 }}
                   className="h-screen w-full flex flex-col items-center justify-center bg-[#0a0f1c] text-white"
                 >
                   <h1 className="text-3xl font-semibold mb-8">
@@ -63,7 +74,7 @@ export default function App() {
                   </h1>
 
                   <div className="flex gap-8">
-                    {/* --- macOS --- */}
+                    {/* macOS */}
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.97 }}
@@ -71,12 +82,15 @@ export default function App() {
                       className="px-8 py-4 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20"
                     >
                       <div className="flex flex-col items-center">
-                        <img src="/mac-icon.png" className="w-12 h-12 mb-2" />
+                        <img
+                          src="/mac-icon.png"
+                          className="w-12 h-12 mb-2"
+                        />
                         <span>macOS Style 🍎</span>
                       </div>
                     </motion.button>
 
-                    {/* --- Windows --- */}
+                    {/* Windows */}
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.97 }}
@@ -84,7 +98,10 @@ export default function App() {
                       className="px-8 py-4 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20"
                     >
                       <div className="flex flex-col items-center">
-                        <img src="/windows-icon.png" className="w-12 h-12 mb-2" />
+                        <img
+                          src="/windows-icon.png"
+                          className="w-12 h-12 mb-2"
+                        />
                         <span>Windows 11 Style 🪟</span>
                       </div>
                     </motion.button>
@@ -96,70 +113,65 @@ export default function App() {
         />
 
         {/* ================================
-                 macOS ROUTES
+                macOS ROUTES
         ================================= */}
-
-        {/* StartPage → vers LOGIN */}
         <Route
           path="/mac"
           element={<StartPageMac onContinue={() => navigate("/mac/auth")} />}
         />
 
-        {/* LOGIN / SIGNUP macOS */}
         <Route
           path="/mac/auth"
           element={<AuthMac onLoginSuccess={() => navigate("/mac/home")} />}
         />
 
-        {/* Accès après login */}
         <Route path="/mac/home" element={<HomeMac />} />
 
-        {/* Dashboard Company */}
         <Route path="/mac/company/:name" element={<DashboardMac />} />
 
-        {/* Crew Management */}
         <Route
           path="/mac/company/:name/crew-management"
           element={<CrewManagementMac />}
         />
 
-        {/* Start Form */}
-        <Route path="/mac/new-starter/:name" element={<NewStarterFormMac />} />
+        <Route
+          path="/mac/new-starter/:name"
+          element={<NewStarterFormMac />}
+        />
 
         {/* ================================
-                 WINDOWS ROUTES
+               WINDOWS ROUTES
         ================================= */}
-
-        {/* StartPage Windows → vers LOGIN */}
         <Route
           path="/windows"
           element={
-            <StartPageWindows onContinue={() => navigate("/windows/auth")} />
+            <StartPageWindows
+              onContinue={() => navigate("/windows/auth")}
+            />
           }
         />
 
-        {/* ⭐ LOGIN / SIGNUP Windows */}
         <Route
           path="/windows/auth"
-          element={<AuthWindows onLoginSuccess={() => navigate("/windows/home")} />}
+          element={
+            <AuthWindows
+              onLoginSuccess={() => navigate("/windows/home")}
+            />
+          }
         />
 
-        {/* Accès après login Windows */}
         <Route path="/windows/home" element={<HomeWindows />} />
 
-        {/* Dashboard Company Windows */}
         <Route
           path="/windows/company/:name"
           element={<DashboardWindows />}
         />
 
-        {/* Crew Management Windows */}
         <Route
           path="/windows/company/:name/crew-management"
           element={<CrewManagementWindows />}
         />
 
-        {/* Start Form Windows */}
         <Route
           path="/windows/new-starter/:name"
           element={<NewStarterFormWindows />}

@@ -46,17 +46,30 @@ export default function HomeMac() {
     fetchCompanies();
   }, []);
 
-  /* RESPONSIVE SCALE */
+  /* RESPONSIVE SCALE (DEBOUNCED) */
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+
     function updateScale() {
       const w = window.innerWidth;
       if (w < 900) setScale(0.9);
       else if (w < 1400) setScale(1);
       else setScale(1.15);
     }
+
+    // Initial call
     updateScale();
-    window.addEventListener("resize", updateScale);
-    return () => window.removeEventListener("resize", updateScale);
+
+    function handleResize() {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(updateScale, 100);
+    }
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   /* CLICK OUTSIDE TO CLOSE DROPDOWN */

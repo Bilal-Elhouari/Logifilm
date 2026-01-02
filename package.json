@@ -73,7 +73,8 @@
       "target": [
         "nsis"
       ],
-      "icon": "assets/logoBureau.ico"
+      "icon": "assets/logoBureau.ico",
+      "signAndEditExecutable": false
     },
     "mac": {
       "target": [
