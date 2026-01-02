@@ -525,7 +525,7 @@ export default function CrewManagementMac() {
                         key={m.id}
                         initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.25, delay: index * 0.03 }}
+                        transition={{ duration: 0.25, delay: Math.min(index * 0.03, 0.5) }}
                         className="
                           border-b border-black/10 dark:border-white/10
                           hover:bg-white/80 dark:hover:bg-white/5 

@@ -16,30 +16,31 @@ export default function AuthWindows({
     /* ----------------------------------------
        LOGIN
     ---------------------------------------- */
-    async function handleLogin(e: any) {
+    async function handleLogin(e: React.FormEvent) {
         e.preventDefault();
         setLoading(true);
         setErrorMsg("");
 
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signInWithPassword({
             email,
             password,
         });
 
+        setLoading(false);
+
         if (error) {
-            setLoading(false);
+            console.error("LOGIN ERROR:", error);
             setErrorMsg("Email ou mot de passe incorrect.");
             return;
         }
 
-        setLoading(false);
         onLoginSuccess();
     }
 
     /* ----------------------------------------
        SIGNUP + CREATE PROFILE
     ---------------------------------------- */
-    async function handleSignup(e: any) {
+    async function handleSignup(e: React.FormEvent) {
         e.preventDefault();
         setLoading(true);
         setErrorMsg("");
@@ -50,19 +51,39 @@ export default function AuthWindows({
         });
 
         if (error) {
+            console.error("SIGNUP ERROR:", error);
             setLoading(false);
             setErrorMsg(error.message);
             return;
         }
 
-        const { data: userData } = await supabase.auth.getUser();
-        const user = userData?.user ?? authData.user;
+        try {
+            const { data: userData } = await supabase.auth.getUser();
+            const user = userData?.user ?? authData.user;
 
-        if (user) {
-            await supabase.from("profiles").insert({
-                id: user.id,
-                email: email,
-            });
+            if (user) {
+                const { error: profileError } = await supabase
+                    .from("profiles")
+                    .insert({
+                        id: user.id,
+                        email: email,
+                    });
+
+                if (profileError) {
+                    console.error("PROFILE INSERT ERROR:", profileError);
+                }
+            }
+        } catch (err) {
+            console.error("Unexpected error creating profile:", err);
+        }
+
+        // Check if session is established
+        const { data: sessionData } = await supabase.auth.getSession();
+
+        if (!sessionData.session) {
+            setLoading(false);
+            setErrorMsg("Compte créé ! Veuillez vérifier vos emails pour confirmer.");
+            return;
         }
 
         setLoading(false);
@@ -90,8 +111,8 @@ export default function AuthWindows({
                         <button
                             onClick={() => setMode("login")}
                             className={`px-6 py-2 rounded-full transition ${mode === "login"
-                                    ? "bg-white/30 text-white"
-                                    : "text-white/60"
+                                ? "bg-white/30 text-white"
+                                : "text-white/60"
                                 }`}
                         >
                             Connexion
@@ -99,8 +120,8 @@ export default function AuthWindows({
                         <button
                             onClick={() => setMode("signup")}
                             className={`px-6 py-2 rounded-full transition ${mode === "signup"
-                                    ? "bg-white/30 text-white"
-                                    : "text-white/60"
+                                ? "bg-white/30 text-white"
+                                : "text-white/60"
                                 }`}
                         >
                             Créer un compte
