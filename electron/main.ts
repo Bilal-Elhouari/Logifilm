@@ -24,7 +24,7 @@ function createWindow() {
     backgroundColor: "#1a1a1a",
     icon: (() => {
       const isMac = process.platform === "darwin";
-      const name = isMac ? "logoFenetreMac.icns" : "logoFenetre.ico";
+      const name = isMac ? "logoFenetreMac.icns" : "logoBureau.ico";
       return isDev
         ? path.join(__dirname, `../public/${name}`)
         : path.join(__dirname, `../dist/${name}`);
