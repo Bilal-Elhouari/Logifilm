@@ -1,4 +1,5 @@
-import { app, BrowserWindow } from "electron";
+// ... existing code ...
+import { app, BrowserWindow, ipcMain } from "electron";
 import path from "path";
 import { existsSync } from "fs";
 
@@ -52,5 +53,17 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  // IPC Handler for checking if app is packaged
+  ipcMain.on('app-is-packaged', (event) => {
+    event.returnValue = app.isPackaged;
+  });
+
+  // IPC Handler for app version
+  ipcMain.on('get-app-version', (event) => {
+    event.returnValue = app.getVersion();
+  });
+
+  createWindow();
+});
 
