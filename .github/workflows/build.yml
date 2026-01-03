@@ -18,40 +18,41 @@ jobs:
       - name: Check out Git repository
         uses: actions/checkout@v4
 
-      - name: Install Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
 
-      # WINDOWS BUILD
+      # WINDOWS
       - name: Build for Windows
         if: matrix.os == 'windows-latest'
         run: npm run build:win
         env:
+          NODE_ENV: production
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # MAC BUILD
+      # MAC
       - name: Build for Mac
         if: matrix.os == 'macos-latest'
         run: npm run build:mac
         env:
+          NODE_ENV: production
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # UPLOAD ARTIFACTS (Windows)
       - name: Upload Windows Artifact
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: windows-build
+          name: Logifilm-Windows
           path: release/*.exe
 
-      # UPLOAD ARTIFACTS (Mac)
       - name: Upload Mac Artifact
         if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: mac-build
+          name: Logifilm-macOS
           path: release/*.dmg
