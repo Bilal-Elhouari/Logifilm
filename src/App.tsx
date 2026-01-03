@@ -21,6 +21,9 @@ import CrewManagementWindows from "./pages/CrewManagementWindows";
 import NewStarterFormMac from "./pages/NewStarterFormMac";
 import NewStarterFormWindows from "./pages/NewStarterFormWindows";
 
+// 🛡️ Guards
+import RequireOS from "./components/RequireOS";
+
 export default function App() {
   const navigate = useNavigate();
 
@@ -44,21 +47,39 @@ export default function App() {
           element={
             (() => {
               /**
-               * AUTO-REDIRECT :
-               * - UNIQUEMENT pour le web
-               * - JAMAIS dans Electron
+               * 🧠 LOGIQUE DE ROUTING INTELLIGENTE
+               * 
+               * 1. Mode Développement :
+               *    -> Toujours afficher le menu de sélection
+               * 
+               * 2. Mode Production (Application installée) :
+               *    -> Redirection AUTOMATIQUE selon l'OS détecté par Electron
+               *    -> Pas de menu, pas de choix possible
                */
-              if (!isDev && platform && !isElectron) {
-                if (platform === "mac") {
+
+              // Détection de l'OS via Electron (exposé dans preload.ts)
+              const platformInfo = window.platform;
+              // platformInfo est maintenant un objet : { os: 'darwin'|'win32', isProd: boolean, isElectron: boolean }
+              // ou undefined si on est sur le web classique
+
+              const osPlatform = platformInfo?.os;
+              const isProdElectron = platformInfo?.isProd;
+
+              // En PROD uniquement (et si on est bien dans Electron) : Redirection automatique
+              if (isProdElectron && osPlatform) {
+                if (osPlatform === "darwin") {
                   return <Navigate to="/mac" replace />;
                 }
-                if (platform === "windows") {
+                if (osPlatform === "win32") {
                   return <Navigate to="/windows" replace />;
                 }
               }
 
               /**
-               * MENU (toujours affiché en dev et en Electron)
+               * MENU DE SÉLECTION
+               * Affiché si :
+               * - On est en mode DEV
+               * - OU on est sur le Web (pas Electron)
                */
               return (
                 <motion.div
@@ -72,6 +93,12 @@ export default function App() {
                   <h1 className="text-3xl font-semibold mb-8">
                     Choisis ton interface
                   </h1>
+
+                  {isDev && (
+                    <div className="absolute top-4 left-4 text-xs text-white/30 font-mono">
+                      DEV MODE: SELECTION ENABLED
+                    </div>
+                  )}
 
                   <div className="flex gap-8">
                     {/* macOS */}
@@ -117,26 +144,56 @@ export default function App() {
         ================================= */}
         <Route
           path="/mac"
-          element={<StartPageMac onContinue={() => navigate("/mac/auth")} />}
+          element={
+            <RequireOS os="darwin">
+              <StartPageMac onContinue={() => navigate("/mac/auth")} />
+            </RequireOS>
+          }
         />
 
         <Route
           path="/mac/auth"
-          element={<AuthMac onLoginSuccess={() => navigate("/mac/home")} />}
+          element={
+            <RequireOS os="darwin">
+              <AuthMac onLoginSuccess={() => navigate("/mac/home")} />
+            </RequireOS>
+          }
         />
 
-        <Route path="/mac/home" element={<HomeMac />} />
+        <Route
+          path="/mac/home"
+          element={
+            <RequireOS os="darwin">
+              <HomeMac />
+            </RequireOS>
+          }
+        />
 
-        <Route path="/mac/company/:name" element={<DashboardMac />} />
+        <Route
+          path="/mac/company/:name"
+          element={
+            <RequireOS os="darwin">
+              <DashboardMac />
+            </RequireOS>
+          }
+        />
 
         <Route
           path="/mac/company/:name/crew-management"
-          element={<CrewManagementMac />}
+          element={
+            <RequireOS os="darwin">
+              <CrewManagementMac />
+            </RequireOS>
+          }
         />
 
         <Route
           path="/mac/new-starter/:name"
-          element={<NewStarterFormMac />}
+          element={
+            <RequireOS os="darwin">
+              <NewStarterFormMac />
+            </RequireOS>
+          }
         />
 
         {/* ================================
@@ -145,38 +202,68 @@ export default function App() {
         <Route
           path="/windows"
           element={
-            <StartPageWindows
-              onContinue={() => navigate("/windows/auth")}
-            />
+            <RequireOS os="win32">
+              <StartPageWindows
+                onContinue={() => navigate("/windows/auth")}
+              />
+            </RequireOS>
           }
         />
 
         <Route
           path="/windows/auth"
           element={
-            <AuthWindows
-              onLoginSuccess={() => navigate("/windows/home")}
-            />
+            <RequireOS os="win32">
+              <AuthWindows
+                onLoginSuccess={() => navigate("/windows/home")}
+              />
+            </RequireOS>
           }
         />
 
-        <Route path="/windows/home" element={<HomeWindows />} />
+        <Route
+          path="/windows/home"
+          element={
+            <RequireOS os="win32">
+              <HomeWindows />
+            </RequireOS>
+          }
+        />
 
         <Route
           path="/windows/company/:name"
-          element={<DashboardWindows />}
+          element={
+            <RequireOS os="win32">
+              <DashboardWindows />
+            </RequireOS>
+          }
         />
 
         <Route
           path="/windows/company/:name/crew-management"
-          element={<CrewManagementWindows />}
+          element={
+            <RequireOS os="win32">
+              <CrewManagementWindows />
+            </RequireOS>
+          }
         />
 
         <Route
           path="/windows/new-starter/:name"
-          element={<NewStarterFormWindows />}
+          element={
+            <RequireOS os="win32">
+              <NewStarterFormWindows />
+            </RequireOS>
+          }
         />
       </Routes>
+
+      {/* Version Display Overlay - only in Electron */}
+      {window.platform?.isElectron && (
+        <div className="fixed bottom-2 right-2 z-50 text-[10px] text-white/20 font-mono pointer-events-none select-none">
+          v{window.platform.version}
+        </div>
+      )}
     </AnimatePresence>
   );
 }
