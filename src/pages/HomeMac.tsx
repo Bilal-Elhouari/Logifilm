@@ -97,15 +97,13 @@ export default function HomeMac() {
         alert("Veuillez entrer un nom de company.");
         return;
       }
-      if (!jobName) {
-        alert("Veuillez entrer un job.");
-        return;
-      }
 
       try {
         const createdCompany = await api.createCompany(companyName);
-        await api.createJob(jobName, createdCompany.id);
-        navigate(`/mac/company/${companyName}`);
+        if (jobName) {
+          await api.createJob(jobName, createdCompany.id);
+        }
+        navigate(`/mac/company/${encodeURIComponent(companyName)}`);
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
         alert("Erreur creation: " + message);
@@ -113,7 +111,7 @@ export default function HomeMac() {
       return;
     }
 
-    navigate(`/mac/company/${selected}`);
+    navigate(`/mac/company/${encodeURIComponent(selected || "")}`);
   };
 
   const handleSelect = (value: string) => {
@@ -269,8 +267,8 @@ export default function HomeMac() {
                   onChange={setNewCompany}
                 />
                 <Field
-                  label="Job"
-                  placeholder="Entrer votre job"
+                  label="Job optionnel"
+                  placeholder="Entrer votre job si besoin"
                   value={newJob}
                   onChange={setNewJob}
                 />

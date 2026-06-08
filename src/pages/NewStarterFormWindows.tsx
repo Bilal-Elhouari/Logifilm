@@ -158,8 +158,11 @@ export default function NewStarterFormWindows() {
   const clean = (v: any) => (v === "" ? null : v);
   const cleanNumber = (v: any) => {
     if (!v) return null;
-    // Remove all non-numeric characters except decimal point
-    const cleaned = String(v).replace(/[^\d.]/g, "");
+    const cleaned = String(v)
+      .replace(/MAD/gi, "")
+      .replace(/\s/g, "")
+      .replace(",", ".")
+      .replace(/[^\d.-]/g, "");
     const n = parseFloat(cleaned);
     return isNaN(n) ? null : n;
   };
@@ -168,28 +171,26 @@ export default function NewStarterFormWindows() {
     `${value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} MAD`;
 
   const handleChange = (key: string, val: any) => {
-    console.log('handleChange called:', key, val);
-    console.log('Current formData before change:', formData);
     setFormData((prev) => ({ ...prev, [key]: val }));
   };
 
   /* ---------------- RATE LOGIC ---------------- */
   const handleRateInput = (val: string) => {
-    const cleanVal = val.replace(/[^\d.]/g, "");
+    const cleanVal = val.replace(/[^\d.,]/g, "").replace(",", ".");
     setFormData((prev) => ({ ...prev, rate: cleanVal }));
   };
 
   const handleRateFocus = () => {
-    const numeric = parseFloat(formData.rate.replace(/[^\d.]/g, ""));
+    const numeric = cleanNumber(formData.rate);
     setFormData((prev) => ({
       ...prev,
-      rate: !isNaN(numeric) ? numeric.toString() : "",
+      rate: numeric !== null ? numeric.toString() : "",
     }));
   };
 
   const handleRateBlur = () => {
-    const numeric = parseFloat(formData.rate);
-    if (!isNaN(numeric)) {
+    const numeric = cleanNumber(formData.rate);
+    if (numeric !== null) {
       const dailyNumeric = numeric / 6;
       const seventhNumeric = dailyNumeric * 2;
 
@@ -198,6 +199,7 @@ export default function NewStarterFormWindows() {
         rate: formatCurrency(numeric),
         dailyRate: formatCurrency(dailyNumeric),
         dayWorked: formatCurrency(seventhNumeric), // 7th DAY WORKED auto
+        holidayWorked: formatCurrency(dailyNumeric),
       }));
     }
   };
@@ -273,9 +275,6 @@ export default function NewStarterFormWindows() {
         travel_date: formData.travelDate,
         notes: formData.note,
       };
-
-      // 🔍 DEBUG: Voir le payload avant envoi
-      console.log('📤 PAYLOAD COMPLET:', payload);
 
       if (editId) {
         // ✅ MODE ÉDITION : UPDATE

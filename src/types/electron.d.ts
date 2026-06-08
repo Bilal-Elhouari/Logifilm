@@ -1,5 +1,12 @@
 export { };
 
+export type UpdateStatus = {
+    state: "idle" | "checking" | "available" | "not-available" | "downloading" | "downloaded" | "error" | "disabled";
+    version?: string;
+    percent?: number;
+    message?: string;
+};
+
 declare global {
     interface Window {
         isElectron?: boolean;
@@ -10,8 +17,11 @@ declare global {
             version: string;
         };
         electron?: {
-            // Add other electron API methods here if needed
-            [key: string]: any;
+            checkForUpdates: () => Promise<{ ok: boolean; message?: string }>;
+            downloadUpdate: () => Promise<{ ok: boolean; message?: string }>;
+            installUpdate: () => Promise<{ ok: boolean }>;
+            openReleases: () => Promise<void>;
+            onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
         };
     }
 }

@@ -1,69 +1,54 @@
-# Guide de Mise à Jour et Déploiement
+# Installation et mises a jour de Logifilm
 
-Ce document explique comment publier une nouvelle version de **Logifilm** pour vos utilisateurs.
+Logifilm utilise GitHub Releases pour distribuer les installateurs et les mises
+a jour. Une version officielle cree :
 
-## 🔄 Comment ça marche ? (Le concept)
+- un installateur `.exe` pour Windows ;
+- un fichier `.dmg` et une archive de mise a jour `.zip` pour macOS ;
+- les fichiers de metadonnees utilises par l'application pour detecter une
+  nouvelle version.
 
-Le processus est automatisé grâce à **GitHub Actions**. Voici le cycle de vie d'une mise à jour :
+## Publier une nouvelle version
 
-1.  **Vous (Développeur)** : Vous faites vos modifications sur l'interface (code).
-2.  **Versioning** : Vous changez le numéro de version dans `package.json` (ex: `1.0.0` ➔ `1.0.1`).
-3.  **Déclencheur (Tag)** : Vous créez une "étiquette" (Tag) git (ex: `v1.0.1`) et vous l'envoyez sur GitHub.
-4.  **Robot (GitHub Action)** :
-    *   GitHub détecte le tag `v*`.
-    *   Il lance automatiquement un ordinateur virtuel (Runner).
-    *   Il installe votre projet, compile le code (`npm run build:win`).
-    *   Il génère les installateurs (`.exe` pour Windows, `.dmg` pour Mac).
-    *   **Il crée une "Release" officielle** sur votre page GitHub avec ces fichiers téléchargeables.
-5.  **Utilisateur** : Il va sur la page "Releases" de GitHub et télécharge la nouvelle version (ou l'application se met à jour automatiquement si configuré).
+Le numero du tag doit toujours correspondre au numero de `package.json`.
 
----
-
-## 🛠️ Guide Étape par Étape
-
-Voici les commandes exactes à taper pour sortir une mise à jour :
-
-### Étape 1 : Modifier et Tester
-Faites vos changements dans le code. Vérifiez que tout marche :
-```bash
-npm run dev
+```powershell
+git add .
+git commit -m "Description des modifications"
+npm version patch
+git push --follow-tags origin main
 ```
 
-### Étape 2 : Mettre à jour la version
-Ouvrez `package.json` et augmentez la version :
-```json
-{
-  "name": "crew-management-software",
-  "version": "1.0.1",  <-- Changez ceci
-  ...
-}
-```
+`npm version patch` passe par exemple de `1.0.2` a `1.0.3`, cree le commit et
+le tag `v1.0.3`. La derniere commande pousse le code et le tag, puis declenche
+`.github/workflows/release.yml`.
 
-### Étape 3 : Commiter la version
-Enregistrez ce changement :
-```bash
-git add package.json
-git commit -m "chore: bump version to 1.0.1"
-git push
-```
+Quand le workflow est termine, les installateurs sont disponibles dans :
 
-### Étape 4 : Créer le Tag (C'est le déclencheur !)
-C'est cette étape qui dit à GitHub "Ceci est une version officielle" :
-```bash
-git tag v1.0.1
-git push origin v1.0.1
-```
+`https://github.com/Bilal-Elhouari/Logifilm/releases`
 
-🎉 **C'est tout !**
-Allez maintenant dans l'onglet **"Actions"** de votre dépôt GitHub. Vous verrez un workflow démarrer. Quand il finit (environ 5-10 min), la nouvelle version apparaîtra dans la section **"Releases"** (colonne de droite sur la page d'accueil du dépôt).
+Tant que cette page ne contient aucune release publiee avec les fichiers
+`latest.yml`, `.exe` et `.blockmap`, l'application affichera simplement
+`Aucune mise a jour publiee pour le moment`.
 
----
+## Fonctionnement pour les utilisateurs
 
-## ⚠️ Configuration Manquante (Important)
+1. L'utilisateur installe Logifilm depuis la page Releases.
+2. Au demarrage, l'application verifie silencieusement si une version plus
+   recente existe.
+3. Le bouton `Mise a jour` permet de verifier, telecharger puis installer la
+   nouvelle version.
+4. Aucun telechargement ne commence sans action de l'utilisateur.
+5. Windows telecharge uniquement son paquet NSIS `.exe`. macOS telecharge
+   uniquement son archive de mise a jour `.zip`. Chaque OS affiche son propre
+   theme dans le panneau de mise a jour.
 
-Même si vous avez le fichier `.github/workflows/build.yml`, **le système ne marchera pas encore totalement** car il manque deux informations cruciales dans votre `package.json` actuel :
+## Points importants
 
-1.  **Repository** : Electron doit savoir *où* publier.
-2.  **Publish Config** : Il faut dire à Electron de publier sur GitHub.
-
-**Dois-je ajouter ces configurations pour vous ?** (Voir "Implementation Plan")
+- Le depot GitHub doit etre public pour que les applications installees puissent
+  verifier les releases sans jeton secret.
+- Windows utilise l'installateur NSIS et peut appliquer la mise a jour apres
+  redemarrage.
+- Pour distribuer une application macOS sans avertissements de securite, une
+  signature Apple Developer et une notarisation sont recommandees.
+- Ne republiez jamais deux releases avec le meme numero de version.

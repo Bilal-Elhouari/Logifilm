@@ -15,5 +15,14 @@ contextBridge.exposeInMainWorld("platform", {
     version: appVersion
 });
 
-// Expose electron API (for future use)
-contextBridge.exposeInMainWorld("electron", {});
+contextBridge.exposeInMainWorld("electron", {
+    checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),
+    downloadUpdate: () => ipcRenderer.invoke("download-update"),
+    installUpdate: () => ipcRenderer.invoke("install-update"),
+    openReleases: () => ipcRenderer.invoke("open-releases"),
+    onUpdateStatus: (callback: (status: unknown) => void) => {
+        const listener = (_event: Electron.IpcRendererEvent, status: unknown) => callback(status);
+        ipcRenderer.on("update-status", listener);
+        return () => ipcRenderer.removeListener("update-status", listener);
+    },
+});

@@ -6,10 +6,14 @@
   "author": "",
   "license": "ISC",
   "scripts": {
-    "dev": "concurrently \"vite\" \"wait-on tcp:5173 && electron .\"",
-    "build": "vite build && tsc -p tsconfig.electron.json && electron-builder",
-    "build:mac": "vite build --mode mac && tsc -p tsconfig.electron.json && electron-builder --mac",
-    "build:win": "vite build --mode windows && tsc -p tsconfig.electron.json && electron-builder --win",
+    "dev": "npm run build:electron && concurrently \"vite\" \"wait-on tcp:5173 && electron .\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.electron.json",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "build": "npm run typecheck && vite build && npm run build:electron && electron-builder",
+    "build:mac": "npm run typecheck && vite build --mode mac && npm run build:electron && electron-builder --mac",
+    "build:win": "npm run typecheck && vite build --mode windows && npm run build:electron && electron-builder --win",
+    "release:mac": "npm run typecheck && vite build --mode mac && npm run build:electron && electron-builder --mac --publish always",
+    "release:win": "npm run typecheck && vite build --mode windows && npm run build:electron && electron-builder --win --publish always",
     "start": "electron ."
   },
   "keywords": [
@@ -24,6 +28,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.86.0",
     "@types/file-saver": "^2.0.7",
+    "electron-updater": "^6.8.9",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.23.24",
     "html2canvas": "^1.4.1",
@@ -37,6 +42,7 @@
   "devDependencies": {
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
+    "@types/semver": "^7.7.1",
     "@vitejs/plugin-react": "^5.1.0",
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.2.1",
@@ -55,7 +61,12 @@
   },
   "build": {
     "publish": [
-      "github"
+      {
+        "provider": "github",
+        "owner": "Bilal-Elhouari",
+        "repo": "Logifilm",
+        "releaseType": "release"
+      }
     ],
     "appId": "com.logifilm.app",
     "productName": "Logifilm",
@@ -83,9 +94,14 @@
       "icon": "assets/logoBureau.ico",
       "signAndEditExecutable": false
     },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
     "mac": {
       "target": [
-        "dmg"
+        "dmg",
+        "zip"
       ],
       "icon": "assets/logoBureauMac.icns"
     }

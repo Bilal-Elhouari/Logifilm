@@ -8,6 +8,8 @@ import HomeMac from "./pages/HomeMac";
 import HomeWindows from "./pages/HomeWindows";
 import DashboardMac from "./pages/DashboardMac";
 import DashboardWindows from "./pages/DashboardWindows";
+import ContractsMac from "./pages/ContractsMac";
+import ContractsWindows from "./pages/ContractsWindows";
 
 // 🧩 Auth
 import AuthMac from "./pages/AuthMac";
@@ -23,6 +25,7 @@ import NewStarterFormWindows from "./pages/NewStarterFormWindows";
 
 // 🛡️ Guards
 import RequireOS from "./components/RequireOS";
+import UpdateCenter from "./components/UpdateCenter";
 
 export default function App() {
   const navigate = useNavigate();
@@ -188,6 +191,15 @@ export default function App() {
         />
 
         <Route
+          path="/mac/company/:name/contracts"
+          element={
+            <RequireOS os="darwin">
+              <ContractsMac />
+            </RequireOS>
+          }
+        />
+
+        <Route
           path="/mac/new-starter/:name"
           element={
             <RequireOS os="darwin">
@@ -249,6 +261,15 @@ export default function App() {
         />
 
         <Route
+          path="/windows/company/:name/contracts"
+          element={
+            <RequireOS os="win32">
+              <ContractsWindows />
+            </RequireOS>
+          }
+        />
+
+        <Route
           path="/windows/new-starter/:name"
           element={
             <RequireOS os="win32">
@@ -258,12 +279,7 @@ export default function App() {
         />
       </Routes>
 
-      {/* Version Display Overlay - only in Electron */}
-      {window.platform?.isElectron && (
-        <div className="fixed bottom-2 right-2 z-50 text-[10px] text-white/20 font-mono pointer-events-none select-none">
-          v{window.platform.version}
-        </div>
-      )}
+      <UpdateCenter />
     </AnimatePresence>
   );
 }

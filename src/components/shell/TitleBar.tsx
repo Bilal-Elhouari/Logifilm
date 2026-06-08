@@ -1,5 +1,9 @@
 import { usePlatform } from "@/platform/PlatformProvider";
 import { cn } from "@/utils/cn";
+import type { CSSProperties } from "react";
+
+const dragStyle = { WebkitAppRegion: "drag" } as CSSProperties;
+const noDragStyle = { WebkitAppRegion: "no-drag" } as CSSProperties;
 
 export default function TitleBar() {
   const { platform, setPlatform } = usePlatform();
@@ -10,9 +14,9 @@ export default function TitleBar() {
         "w-full flex items-center justify-between px-4 h-12 border-b border-[var(--border)] text-[var(--text)]",
         platform === "mac" ? "bg-[var(--surface)] rounded-t-[var(--radius)] backdrop-blur-lg" : "bg-transparent"
       )}
-      style={{ WebkitAppRegion: "drag" }}
+      style={dragStyle}
     >
-      <div className="flex items-center gap-2" style={{ WebkitAppRegion: "no-drag" }}>
+      <div className="flex items-center gap-2" style={noDragStyle}>
         {platform === "mac" && (
           <div className="flex gap-2">
             <span className="h-3.5 w-3.5 rounded-full bg-[#ff5f57] border border-black/10"></span>
@@ -23,7 +27,7 @@ export default function TitleBar() {
         <span className="ml-2 font-semibold opacity-80">Crew Management Software</span>
       </div>
 
-      <div className="flex items-center gap-2" style={{ WebkitAppRegion: "no-drag" }}>
+      <div className="flex items-center gap-2" style={noDragStyle}>
         <button
           onClick={() => setPlatform("mac")}
           className={cn(

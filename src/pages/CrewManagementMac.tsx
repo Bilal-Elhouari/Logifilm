@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -7,12 +7,14 @@ import {
   FileText,
   Pencil,
   FileDown,
+  Search,
+  Link2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-import { api } from "../services/api";
+import { api, ContractRecord } from "../services/api";
 
 export default function CrewManagementMac() {
   const { name } = useParams();
@@ -25,9 +27,21 @@ export default function CrewManagementMac() {
   const [crewMembers, setCrewMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [jobName, setJobName] = useState<string | null>(null);
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [selectedJobId, setSelectedJobId] = useState("");
+  const [assigningToJob, setAssigningToJob] = useState(false);
+  const [contracts, setContracts] = useState<ContractRecord[]>([]);
+  const [loadingContracts, setLoadingContracts] = useState(false);
+  const [downloadingContractId, setDownloadingContractId] = useState<string | null>(null);
 
   // ✅ MULTI-SELECTION STATE
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [globalSearch, setGlobalSearch] = useState("");
+  const [globalResults, setGlobalResults] = useState<any[]>([]);
+  const [searchingGlobal, setSearchingGlobal] = useState(false);
+  const [hasGlobalSearched, setHasGlobalSearched] = useState(false);
+  const [assigningId, setAssigningId] = useState<string | null>(null);
+  const globalSearchInputRef = useRef<HTMLInputElement>(null);
 
   /* ------------------ FETCH COMPANY ------------------ */
   useEffect(() => {
@@ -44,7 +58,7 @@ export default function CrewManagementMac() {
 
   /* ------------------ FETCH CREW MEMBERS ------------------ */
   useEffect(() => {
-    if (!companyId || activeTab !== "database") return;
+    if (!companyId) return;
 
     async function loadCrew() {
       setLoading(true);
@@ -69,6 +83,44 @@ export default function CrewManagementMac() {
 
     loadCrew();
   }, [companyId, activeTab, jobId]);
+
+  useEffect(() => {
+    if (activeTab !== "contract") return;
+
+    const memberIds = crewMembers
+      .map((member) => member.id)
+      .filter((id): id is string => Boolean(id));
+
+    async function loadContracts() {
+      setLoadingContracts(true);
+      try {
+        const data = await api.getContractsByCrewMemberIds(memberIds);
+        setContracts(data || []);
+      } catch (err) {
+        console.error("Error loading job contracts:", err);
+        setContracts([]);
+      } finally {
+        setLoadingContracts(false);
+      }
+    }
+
+    loadContracts();
+  }, [activeTab, crewMembers]);
+
+  useEffect(() => {
+    if (!companyId) return;
+
+    async function loadJobs() {
+      try {
+        const data = await api.getJobsByCompany(companyId!);
+        setJobs(data || []);
+      } catch (err) {
+        console.error("Error loading jobs:", err);
+      }
+    }
+
+    loadJobs();
+  }, [companyId]);
 
   /* ------------------ DELETE ------------------ */
   const handleDelete = async (id: string) => {
@@ -243,13 +295,7 @@ export default function CrewManagementMac() {
   };
 
   /* ------------------ EXCEL EXPORT ------------------ */
-  const handleExportExcel = () => {
-    if (selectedIds.size === 0) return;
-
-    // Filter selected members
-    const membersToExport = crewMembers.filter((m) => selectedIds.has(m.id));
-
-    // Format data for Excel
+  const exportCrewMembersToExcel = (membersToExport: any[], fileName: string) => {
     const data = membersToExport.map((m) => ({
       "First Name": m.first_name,
       "Last Name": m.last_name,
@@ -297,7 +343,39 @@ export default function CrewManagementMac() {
     const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
     const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
 
-    saveAs(blob, `Crew_List_${name || "Export"}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    saveAs(blob, fileName);
+  };
+
+  const handleDownloadContract = async (contract: ContractRecord) => {
+    setDownloadingContractId(contract.id || contract.file_path);
+    try {
+      const blob = await api.downloadContractFile(contract.file_path);
+      saveAs(blob, contract.contract_name);
+    } catch (err) {
+      console.error("Contract download error:", err);
+      alert("Impossible de telecharger ce contrat.");
+    } finally {
+      setDownloadingContractId(null);
+    }
+  };
+
+  const handleExportExcel = () => {
+    if (selectedIds.size === 0) return;
+
+    const membersToExport = crewMembers.filter((m) => selectedIds.has(m.id));
+    exportCrewMembersToExcel(
+      membersToExport,
+      `Crew_List_${name || "Export"}_${new Date().toISOString().slice(0, 10)}.xlsx`
+    );
+  };
+
+  const handleExportGlobalResults = () => {
+    if (globalResults.length === 0) return;
+
+    exportCrewMembersToExcel(
+      globalResults,
+      `Starter_Search_${name || "Export"}_${new Date().toISOString().slice(0, 10)}.xlsx`
+    );
   };
 
   /* ------------------ SELECTION HANDLERS ------------------ */
@@ -318,6 +396,90 @@ export default function CrewManagementMac() {
       newSet.add(id);
     }
     setSelectedIds(newSet);
+  };
+
+  const handleGlobalSearch = async () => {
+    const q = globalSearch.trim();
+
+    if (q.length < 2) {
+      alert("Tapez au moins 2 lettres pour rechercher.");
+      return;
+    }
+
+    setSearchingGlobal(true);
+    setHasGlobalSearched(true);
+    setGlobalResults([]);
+    try {
+      const data = await api.searchCrewMembers(q);
+      setGlobalResults(data || []);
+    } catch (err) {
+      console.error("Erreur recherche startforms:", err);
+      alert("Erreur lors de la recherche.");
+    } finally {
+      setSearchingGlobal(false);
+    }
+  };
+
+  const handleAssignStarter = async (memberId: string) => {
+    if (!companyId) {
+      alert("Company non chargee.");
+      return;
+    }
+
+    setAssigningId(memberId);
+    try {
+      const created = await api.duplicateCrewMemberForAssignment(
+        memberId,
+        companyId,
+        jobId || null
+      );
+      setCrewMembers((prev) => [created, ...prev]);
+      setSelectedIds(new Set());
+      setGlobalSearch("");
+      setGlobalResults([]);
+      setHasGlobalSearched(false);
+      alert(jobId ? "Startform associe au job." : "Startform ajoute a la company.");
+      setTimeout(() => globalSearchInputRef.current?.focus(), 50);
+    } catch (err) {
+      console.error("Erreur association startform:", err);
+      alert("Erreur lors de l'association.");
+    } finally {
+      setAssigningId(null);
+    }
+  };
+
+  const handleAssignSelectedToJob = async () => {
+    if (!selectedJobId) {
+      alert("Selectionnez un job.");
+      return;
+    }
+
+    if (selectedIds.size === 0) {
+      alert("Selectionnez au moins un crew member.");
+      return;
+    }
+
+    setAssigningToJob(true);
+    try {
+      const ids = Array.from(selectedIds);
+      await Promise.all(
+        ids.map((id) => api.updateCrewMember(id, { job_id: selectedJobId }))
+      );
+
+      setCrewMembers((prev) =>
+        prev.map((member) =>
+          selectedIds.has(member.id) ? { ...member, job_id: selectedJobId } : member
+        )
+      );
+      setSelectedIds(new Set());
+      setSelectedJobId("");
+      alert("Crew member(s) integre(s) au job.");
+    } catch (err) {
+      console.error("Erreur integration job:", err);
+      alert("Erreur lors de l'integration au job.");
+    } finally {
+      setAssigningToJob(false);
+    }
   };
 
   /* ------------------ UI ------------------ */
@@ -347,7 +509,7 @@ export default function CrewManagementMac() {
           {/* NEW STARTER */}
           <button
             onClick={() =>
-              navigate(`/mac/new-starter/${name}?job=${jobId ?? ""}`)
+              navigate(`/mac/new-starter/${encodeURIComponent(name || "")}?job=${jobId ?? ""}`)
             }
             className="
               flex items-center gap-3 px-4 py-2 rounded-2xl
@@ -453,6 +615,167 @@ export default function CrewManagementMac() {
                 </motion.button>
               )}
             </div>
+
+            <div className="mb-6 rounded-2xl border border-black/10 dark:border-white/10 bg-white/55 dark:bg-white/5 p-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black/40 dark:text-white/40" />
+                  <input
+                    ref={globalSearchInputRef}
+                    type="text"
+                    value={globalSearch}
+                    onChange={(e) => setGlobalSearch(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleGlobalSearch();
+                    }}
+                    placeholder="Rechercher un startform global par nom ou prenom"
+                    className="
+                      w-full rounded-xl border border-black/10 dark:border-white/10
+                      bg-white/80 dark:bg-white/10 px-10 py-3 text-sm
+                      text-black dark:text-white placeholder-black/40 dark:placeholder-white/35
+                      outline-none focus:border-blue-500/50
+                    "
+                  />
+                </div>
+
+                <button
+                  onClick={handleGlobalSearch}
+                  disabled={searchingGlobal}
+                  className="
+                    flex items-center justify-center gap-2 rounded-xl bg-blue-500 px-4 py-3
+                    text-sm font-medium text-white shadow hover:bg-blue-600 disabled:opacity-60
+                  "
+                >
+                  <Search size={16} />
+                  {searchingGlobal ? "Recherche..." : "Rechercher"}
+                </button>
+              </div>
+
+              {globalResults.length > 0 && (
+                <>
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <p className="text-sm text-black/60 dark:text-white/60">
+                    {globalResults.length} startform(s) trouve(s)
+                  </p>
+                  <button
+                    onClick={handleExportGlobalResults}
+                    className="
+                      flex items-center gap-2 rounded-xl bg-green-500 px-3 py-2
+                      text-xs font-medium text-white shadow hover:bg-green-600
+                    "
+                  >
+                    <FileDown size={14} />
+                    Export search
+                  </button>
+                </div>
+
+                <div className="mt-3 overflow-x-auto rounded-xl border border-black/10 dark:border-white/10">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-black/60 dark:text-white/60">
+                        <th className="px-3 py-2">First Name</th>
+                        <th className="px-3 py-2">Last Name</th>
+                        <th className="px-3 py-2">ID Card</th>
+                        <th className="px-3 py-2">Position</th>
+                        <th className="px-3 py-2">Department</th>
+                        <th className="px-3 py-2">Project</th>
+                        <th className="px-3 py-2 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {globalResults.map((m) => (
+                        <tr
+                          key={m.id}
+                          className="border-t border-black/10 dark:border-white/10 text-black dark:text-white"
+                        >
+                          <td className="px-3 py-2 whitespace-nowrap">{m.first_name}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">{m.last_name}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">{m.id_card_number}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">{m.position}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">{m.department}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">{m.project_title}</td>
+                          <td className="px-3 py-2 text-right">
+                            <button
+                              onClick={() => handleAssignStarter(m.id)}
+                              disabled={assigningId === m.id}
+                              className="
+                                inline-flex items-center gap-2 rounded-xl bg-green-500/20 px-3 py-1.5
+                                text-xs font-medium text-green-700 transition hover:bg-green-500/30
+                                dark:text-green-300 disabled:opacity-60
+                              "
+                            >
+                              <Link2 size={14} />
+                              {assigningId === m.id
+                                ? "Association..."
+                                : jobId
+                                  ? "Associer au job"
+                                  : "Associer a la company"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                </>
+              )}
+
+              {hasGlobalSearched && !searchingGlobal && globalResults.length === 0 && (
+                <p className="mt-4 rounded-xl border border-black/10 bg-white/50 px-4 py-3 text-sm text-black/60 dark:border-white/10 dark:bg-white/5 dark:text-white/60">
+                  Aucun startform global trouve pour cette recherche.
+                </p>
+              )}
+            </div>
+
+            {!jobId && (
+              <div className="mb-6 rounded-2xl border border-blue-500/20 bg-blue-500/10 p-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-black dark:text-white">
+                      Integrer les crew members selectionnes dans un job
+                    </p>
+                    <p className="text-xs text-black/55 dark:text-white/55">
+                      Selectionnez une ou plusieurs lignes dans All Jobs, puis choisissez le job.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <select
+                      value={selectedJobId}
+                      onChange={(e) => setSelectedJobId(e.target.value)}
+                      disabled={jobs.length === 0}
+                      className="
+                        min-w-[220px] rounded-xl border border-black/10 dark:border-white/10
+                        bg-white/80 dark:bg-white/10 px-3 py-2 text-sm
+                        text-black dark:text-white outline-none
+                      "
+                    >
+                      <option value="" className="text-black">
+                        {jobs.length === 0 ? "Aucun job disponible" : "Choisir un job"}
+                      </option>
+                      {jobs.map((job) => (
+                        <option key={job.id} value={job.id} className="text-black">
+                          {job.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <button
+                      onClick={handleAssignSelectedToJob}
+                      disabled={assigningToJob || selectedIds.size === 0 || !selectedJobId}
+                      className="
+                        rounded-xl bg-blue-500 px-4 py-2 text-sm font-medium text-white shadow
+                        hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50
+                      "
+                    >
+                      {assigningToJob
+                        ? "Integration..."
+                        : `Integrer (${selectedIds.size})`}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {loading ? (
               <p className="text-black/60 dark:text-white/60">Chargement...</p>
@@ -582,7 +905,7 @@ export default function CrewManagementMac() {
                           <button
                             onClick={() =>
                               navigate(
-                                `/mac/new-starter/${name}?job=${jobId ?? ""}&edit=${m.id}`
+                                `/mac/new-starter/${encodeURIComponent(name || "")}?job=${jobId ?? ""}&edit=${m.id}`
                               )
                             }
                             className="
@@ -643,9 +966,53 @@ export default function CrewManagementMac() {
             <h2 className="text-xl font-semibold mb-4 text-black/80 dark:text-white/80">
               Crew Contract
             </h2>
-            <p className="text-black/60 dark:text-white/60">
-              Contract module coming soon…
-            </p>
+            {loadingContracts ? (
+              <p className="text-black/60 dark:text-white/60">Chargement des contrats...</p>
+            ) : contracts.length === 0 ? (
+              <p className="text-black/60 dark:text-white/60">
+                Aucun contrat genere pour les crew members de ce job.
+              </p>
+            ) : (
+              <div className="overflow-x-auto rounded-2xl border border-black/10 dark:border-white/10">
+                <table className="w-full text-left text-black/90 dark:text-white/90">
+                  <thead className="bg-black/5 dark:bg-white/10 text-sm text-black/70 dark:text-white/70">
+                    <tr>
+                      <th className="px-4 py-3">Crew member</th>
+                      <th className="px-4 py-3">Contrat</th>
+                      <th className="px-4 py-3">Date</th>
+                      <th className="px-4 py-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contracts.map((contract) => {
+                      const member = crewMembers.find((item) => item.id === contract.crew_member_id);
+                      const contractId = contract.id || contract.file_path;
+                      return (
+                        <tr key={contractId} className="border-t border-black/10 dark:border-white/10 text-black/90 dark:text-white/90">
+                          <td className="px-4 py-3 font-medium">
+                            {[member?.first_name, member?.last_name].filter(Boolean).join(" ") || "Crew member"}
+                          </td>
+                          <td className="px-4 py-3">{contract.contract_name}</td>
+                          <td className="px-4 py-3">
+                            {contract.created_at ? new Date(contract.created_at).toLocaleDateString("fr-FR") : ""}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              onClick={() => handleDownloadContract(contract)}
+                              disabled={downloadingContractId === contractId}
+                              className="inline-flex items-center gap-2 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 px-3 py-2 text-sm text-blue-700 dark:text-blue-100 disabled:opacity-50"
+                            >
+                              <FileDown size={16} />
+                              {downloadingContractId === contractId ? "Telechargement..." : "Telecharger"}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </motion.div>
         )}
       </motion.main>

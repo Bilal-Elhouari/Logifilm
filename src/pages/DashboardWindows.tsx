@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { JSX, useEffect, useState } from "react";
+import { JSX, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Wallet, LogOut, Plus, Check, X, Trash2 } from "lucide-react";
+import { Users, Wallet, LogOut, Plus, Check, X, Trash2, FileText } from "lucide-react";
 import { supabase } from "../supabaseClient";
 import { api } from "../services/api";
 
@@ -16,6 +16,7 @@ export default function DashboardWindows() {
   const [addingJob, setAddingJob] = useState(false);
   const [showJobInput, setShowJobInput] = useState(false);
   const [newJobName, setNewJobName] = useState("");
+  const newJobInputRef = useRef<HTMLInputElement>(null);
 
   // 🌙 / ☀️ DARK MODE AUTO (Windows + macOS)
   const [dark, setDark] = useState(
@@ -54,6 +55,8 @@ export default function DashboardWindows() {
 
   /* ---------------- FETCH JOBS ---------------- */
   useEffect(() => {
+    if (loadingCompany) return;
+
     if (!companyId) {
       setLoading(false);
       return;
@@ -76,25 +79,24 @@ export default function DashboardWindows() {
     }
 
     fetchJobs();
-  }, [companyId]);
+  }, [companyId, loadingCompany]);
+
+  useEffect(() => {
+    if (!showJobInput) return;
+    window.setTimeout(() => newJobInputRef.current?.focus(), 50);
+  }, [showJobInput]);
 
   /* ---------------- SAVE JOB ---------------- */
   async function saveJob() {
-    if (!companyId) return alert("Company non chargée.");
-    if (!newJobName || !newJobName.trim()) return;
+    if (!companyId) return alert("Company non chargee.");
+    const jobName = newJobName.trim();
+    if (!jobName || addingJob) return;
 
     setAddingJob(true);
 
-    const { data, error } = await supabase
-      .from("jobs")
-      .insert([{ name: newJobName.trim(), company_id: companyId }])
-      .select("*")
-      .single();
+    try {
+      const data = await api.createJob(jobName, companyId);
 
-    if (error) {
-      alert("Erreur création job.");
-      console.error(error);
-    } else {
       setJobs((prev) =>
         [...prev, data].sort((a, b) =>
           (a.name || "").localeCompare(b.name || "")
@@ -102,10 +104,12 @@ export default function DashboardWindows() {
       );
       setNewJobName("");
       setShowJobInput(false);
+    } catch (error) {
+      console.error("Erreur creation job:", error);
+      alert(error instanceof Error ? error.message : "Erreur creation job.");
+    } finally {
+      setAddingJob(false);
     }
-
-    setAddingJob(false);
-    setAddingJob(false);
   }
 
   /* ---------------- DELETE JOB ---------------- */
@@ -126,7 +130,12 @@ export default function DashboardWindows() {
     {
       icon: <Users size={18} />,
       label: "Crew Management",
-      path: `/windows/company/${name}/crew-management`,
+      path: `/windows/company/${encodeURIComponent(name || "")}/crew-management`,
+    },
+    {
+      icon: <FileText size={18} />,
+      label: "Contrat",
+      path: `/windows/company/${encodeURIComponent(name || "")}/contracts`,
     },
     { icon: <Wallet size={18} />, label: "Payroll" },
   ];
@@ -247,7 +256,6 @@ export default function DashboardWindows() {
             <button
               onClick={() => {
                 setShowJobInput(true);
-                setTimeout(() => document.getElementById("new-job-input")?.focus(), 50);
               }}
               disabled={loadingCompany || addingJob || showJobInput}
               className={`
@@ -281,15 +289,19 @@ export default function DashboardWindows() {
                    `}
                 >
                   <input
-                    id="new-job-input"
+                    ref={newJobInputRef}
                     type="text"
                     value={newJobName}
                     onChange={(e) => setNewJobName(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") saveJob();
-                      if (e.key === "Escape") setShowJobInput(false);
+                      if (e.key === "Escape") {
+                        setNewJobName("");
+                        setShowJobInput(false);
+                      }
                     }}
                     placeholder="Nom du nouveau job..."
+                    disabled={addingJob}
                     className={`
                       flex-1 bg-transparent outline-none px-2
                       ${dark ? "text-white placeholder-white/40" : "text-black placeholder-gray-400"}
@@ -303,7 +315,10 @@ export default function DashboardWindows() {
                     <Check size={18} />
                   </button>
                   <button
-                    onClick={() => setShowJobInput(false)}
+                    onClick={() => {
+                      setNewJobName("");
+                      setShowJobInput(false);
+                    }}
                     className="p-2 rounded-lg bg-red-500/20 text-red-500 hover:bg-red-500/30 transition"
                   >
                     <X size={18} />
@@ -334,7 +349,7 @@ export default function DashboardWindows() {
                     `}
                   onClick={() =>
                     navigate(
-                      `/windows/company/${name}/crew-management?job=${job.id}`
+                      `/windows/company/${encodeURIComponent(name || "")}/crew-management?job=${job.id}`
                     )
                   }
                 >

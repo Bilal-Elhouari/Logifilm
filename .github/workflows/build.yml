@@ -3,7 +3,6 @@ name: Build & Release
 on:
   push:
     branches: [ "main" ]
-    tags: [ "v*" ]
   workflow_dispatch:
 
 jobs:
@@ -55,4 +54,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Logifilm-macOS
-          path: release/*.dmg
+          path: |
+            release/*.dmg
+            release/*.zip

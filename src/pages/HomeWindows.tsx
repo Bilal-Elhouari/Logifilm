@@ -175,8 +175,8 @@ export default function HomeWindows() {
                 />
                 <Field
                   dark={dark}
-                  label="Job"
-                  placeholder="Enter your job"
+                  label="Job optional"
+                  placeholder="Enter a job if needed"
                   value={newJob}
                   onChange={setNewJob}
                 />
@@ -206,21 +206,19 @@ export default function HomeWindows() {
                         alert("Please enter a company name");
                         return;
                       }
-                      if (!jobName) {
-                        alert("Please enter a job name");
-                        return;
-                      }
 
                       try {
                         const createdCompany = await api.createCompany(companyName);
-                        await api.createJob(jobName, createdCompany.id);
-                        navigate(`/windows/company/${companyName}`);
+                        if (jobName) {
+                          await api.createJob(jobName, createdCompany.id);
+                        }
+                        navigate(`/windows/company/${encodeURIComponent(companyName)}`);
                       } catch (err: any) {
                         alert("Error creating company or job: " + (err.message || err));
                         return;
                       }
                     } else {
-                      navigate(`/windows/company/${selected}`);
+                      navigate(`/windows/company/${encodeURIComponent(selected)}`);
                     }
                   }}
                   className={`

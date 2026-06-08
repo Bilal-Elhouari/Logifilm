@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -7,12 +7,14 @@ import {
   FileText,
   Pencil,
   FileDown,
+  Search,
+  Link2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-import { api } from "../services/api";
+import { api, ContractRecord } from "../services/api";
 
 export default function CrewManagementWindows() {
   const { name } = useParams();
@@ -25,9 +27,21 @@ export default function CrewManagementWindows() {
   const [crewMembers, setCrewMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [jobName, setJobName] = useState<string | null>(null);
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [selectedJobId, setSelectedJobId] = useState("");
+  const [assigningToJob, setAssigningToJob] = useState(false);
+  const [contracts, setContracts] = useState<ContractRecord[]>([]);
+  const [loadingContracts, setLoadingContracts] = useState(false);
+  const [downloadingContractId, setDownloadingContractId] = useState<string | null>(null);
 
   // ✅ MULTI-SELECTION STATE
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [globalSearch, setGlobalSearch] = useState("");
+  const [globalResults, setGlobalResults] = useState<any[]>([]);
+  const [searchingGlobal, setSearchingGlobal] = useState(false);
+  const [hasGlobalSearched, setHasGlobalSearched] = useState(false);
+  const [assigningId, setAssigningId] = useState<string | null>(null);
+  const globalSearchInputRef = useRef<HTMLInputElement>(null);
 
   /* ---------------- DARK / LIGHT AUTO ---------------- */
   const [dark, setDark] = useState(
@@ -56,7 +70,7 @@ export default function CrewManagementWindows() {
 
   /* ---------------- FETCH CREW MEMBERS ---------------- */
   useEffect(() => {
-    if (!companyId || activeTab !== "database") return;
+    if (!companyId) return;
 
     async function loadCrew() {
       setLoading(true);
@@ -81,6 +95,44 @@ export default function CrewManagementWindows() {
 
     loadCrew();
   }, [companyId, activeTab, jobId]);
+
+  useEffect(() => {
+    if (activeTab !== "contract") return;
+
+    const memberIds = crewMembers
+      .map((member) => member.id)
+      .filter((id): id is string => Boolean(id));
+
+    async function loadContracts() {
+      setLoadingContracts(true);
+      try {
+        const data = await api.getContractsByCrewMemberIds(memberIds);
+        setContracts(data || []);
+      } catch (err) {
+        console.error("Error loading job contracts:", err);
+        setContracts([]);
+      } finally {
+        setLoadingContracts(false);
+      }
+    }
+
+    loadContracts();
+  }, [activeTab, crewMembers]);
+
+  useEffect(() => {
+    if (!companyId) return;
+
+    async function loadJobs() {
+      try {
+        const data = await api.getJobsByCompany(companyId!);
+        setJobs(data || []);
+      } catch (err) {
+        console.error("Error loading jobs:", err);
+      }
+    }
+
+    loadJobs();
+  }, [companyId]);
 
   /* ---------------- DELETE ---------------- */
   const handleDelete = async (id: string) => {
@@ -255,13 +307,7 @@ export default function CrewManagementWindows() {
   };
 
   /* ------------------ EXCEL EXPORT ------------------ */
-  const handleExportExcel = () => {
-    if (selectedIds.size === 0) return;
-
-    // Filter selected members
-    const membersToExport = crewMembers.filter((m) => selectedIds.has(m.id));
-
-    // Format data for Excel
+  const exportCrewMembersToExcel = (membersToExport: any[], fileName: string) => {
     const data = membersToExport.map((m) => ({
       "First Name": m.first_name,
       "Last Name": m.last_name,
@@ -309,7 +355,39 @@ export default function CrewManagementWindows() {
     const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
     const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
 
-    saveAs(blob, `Crew_List_${name || "Export"}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    saveAs(blob, fileName);
+  };
+
+  const handleDownloadContract = async (contract: ContractRecord) => {
+    setDownloadingContractId(contract.id || contract.file_path);
+    try {
+      const blob = await api.downloadContractFile(contract.file_path);
+      saveAs(blob, contract.contract_name);
+    } catch (err) {
+      console.error("Contract download error:", err);
+      alert("Unable to download this contract.");
+    } finally {
+      setDownloadingContractId(null);
+    }
+  };
+
+  const handleExportExcel = () => {
+    if (selectedIds.size === 0) return;
+
+    const membersToExport = crewMembers.filter((m) => selectedIds.has(m.id));
+    exportCrewMembersToExcel(
+      membersToExport,
+      `Crew_List_${name || "Export"}_${new Date().toISOString().slice(0, 10)}.xlsx`
+    );
+  };
+
+  const handleExportGlobalResults = () => {
+    if (globalResults.length === 0) return;
+
+    exportCrewMembersToExcel(
+      globalResults,
+      `Starter_Search_${name || "Export"}_${new Date().toISOString().slice(0, 10)}.xlsx`
+    );
   };
 
   /* ------------------ SELECTION HANDLERS ------------------ */
@@ -330,6 +408,90 @@ export default function CrewManagementWindows() {
       newSet.add(id);
     }
     setSelectedIds(newSet);
+  };
+
+  const handleGlobalSearch = async () => {
+    const q = globalSearch.trim();
+
+    if (q.length < 2) {
+      alert("Type at least 2 letters to search.");
+      return;
+    }
+
+    setSearchingGlobal(true);
+    setHasGlobalSearched(true);
+    setGlobalResults([]);
+    try {
+      const data = await api.searchCrewMembers(q);
+      setGlobalResults(data || []);
+    } catch (err) {
+      console.error("Error searching starter forms:", err);
+      alert("Error while searching.");
+    } finally {
+      setSearchingGlobal(false);
+    }
+  };
+
+  const handleAssignStarter = async (memberId: string) => {
+    if (!companyId) {
+      alert("Company not loaded.");
+      return;
+    }
+
+    setAssigningId(memberId);
+    try {
+      const created = await api.duplicateCrewMemberForAssignment(
+        memberId,
+        companyId,
+        jobId || null
+      );
+      setCrewMembers((prev) => [created, ...prev]);
+      setSelectedIds(new Set());
+      setGlobalSearch("");
+      setGlobalResults([]);
+      setHasGlobalSearched(false);
+      alert(jobId ? "Starter form assigned to job." : "Starter form added to company.");
+      setTimeout(() => globalSearchInputRef.current?.focus(), 50);
+    } catch (err) {
+      console.error("Error assigning starter form:", err);
+      alert("Error while assigning.");
+    } finally {
+      setAssigningId(null);
+    }
+  };
+
+  const handleAssignSelectedToJob = async () => {
+    if (!selectedJobId) {
+      alert("Select a job.");
+      return;
+    }
+
+    if (selectedIds.size === 0) {
+      alert("Select at least one crew member.");
+      return;
+    }
+
+    setAssigningToJob(true);
+    try {
+      const ids = Array.from(selectedIds);
+      await Promise.all(
+        ids.map((id) => api.updateCrewMember(id, { job_id: selectedJobId }))
+      );
+
+      setCrewMembers((prev) =>
+        prev.map((member) =>
+          selectedIds.has(member.id) ? { ...member, job_id: selectedJobId } : member
+        )
+      );
+      setSelectedIds(new Set());
+      setSelectedJobId("");
+      alert("Crew member(s) assigned to job.");
+    } catch (err) {
+      console.error("Error assigning to job:", err);
+      alert("Error while assigning to job.");
+    } finally {
+      setAssigningToJob(false);
+    }
   };
 
   /* ---------------- UI ---------------- */
@@ -356,7 +518,7 @@ export default function CrewManagementWindows() {
           {/* NEW STARTER */}
           <button
             onClick={() =>
-              navigate(`/windows/new-starter/${name}?job=${jobId ?? ""}`)
+              navigate(`/windows/new-starter/${encodeURIComponent(name || "")}?job=${jobId ?? ""}`)
             }
             className={`
               flex items-center gap-3 px-4 py-2 rounded-xl border transition
@@ -474,6 +636,185 @@ export default function CrewManagementWindows() {
                 </motion.button>
               )}
             </div>
+
+            <div
+              className={`mb-6 rounded-2xl border p-4 ${dark
+                ? "bg-white/5 border-white/15"
+                : "bg-gray-50 border-gray-200"
+                }`}
+            >
+              <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                <div className="relative flex-1">
+                  <Search
+                    className={`absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 ${dark ? "text-white/40" : "text-black/40"
+                      }`}
+                  />
+                  <input
+                    ref={globalSearchInputRef}
+                    type="text"
+                    value={globalSearch}
+                    onChange={(e) => setGlobalSearch(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleGlobalSearch();
+                    }}
+                    placeholder="Search global starter forms by first or last name"
+                    className={`w-full rounded-lg border px-10 py-3 text-sm outline-none transition ${dark
+                      ? "bg-white/10 border-white/15 text-white placeholder-white/35 focus:border-blue-400/60"
+                      : "bg-white border-gray-300 text-black placeholder-gray-400 focus:border-blue-500"
+                      }`}
+                  />
+                </div>
+
+                <button
+                  onClick={handleGlobalSearch}
+                  disabled={searchingGlobal}
+                  className="
+                    flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3
+                    text-sm font-medium text-white shadow hover:bg-blue-700 disabled:opacity-60
+                  "
+                >
+                  <Search size={16} />
+                  {searchingGlobal ? "Searching..." : "Search"}
+                </button>
+              </div>
+
+              {globalResults.length > 0 && (
+                <>
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <p className={dark ? "text-sm text-white/60" : "text-sm text-black/60"}>
+                    {globalResults.length} starter form(s) found
+                  </p>
+                  <button
+                    onClick={handleExportGlobalResults}
+                    className="
+                      flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2
+                      text-xs font-medium text-white shadow hover:bg-green-700
+                    "
+                  >
+                    <FileDown size={14} />
+                    Export search
+                  </button>
+                </div>
+
+                <div
+                  className={`mt-3 overflow-x-auto rounded-xl border ${dark ? "border-white/15" : "border-gray-200"
+                    }`}
+                >
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className={dark ? "text-gray-300" : "text-gray-600"}>
+                        <th className="px-3 py-2 text-left">First Name</th>
+                        <th className="px-3 py-2 text-left">Last Name</th>
+                        <th className="px-3 py-2 text-left">ID Card</th>
+                        <th className="px-3 py-2 text-left">Position</th>
+                        <th className="px-3 py-2 text-left">Department</th>
+                        <th className="px-3 py-2 text-left">Project</th>
+                        <th className="px-3 py-2 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {globalResults.map((m) => (
+                        <tr
+                          key={m.id}
+                          className={`border-t ${dark ? "border-white/10 text-white" : "border-gray-200 text-black"
+                            }`}
+                        >
+                          <td className="px-3 py-2 whitespace-nowrap">{m.first_name}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">{m.last_name}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">{m.id_card_number}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">{m.position}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">{m.department}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">{m.project_title}</td>
+                          <td className="px-3 py-2 text-right">
+                            <button
+                              onClick={() => handleAssignStarter(m.id)}
+                              disabled={assigningId === m.id}
+                              className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition disabled:opacity-60 ${dark
+                                ? "bg-green-500/20 text-green-300 hover:bg-green-500/30"
+                                : "bg-green-100 text-green-700 hover:bg-green-200"
+                                }`}
+                            >
+                              <Link2 size={14} />
+                              {assigningId === m.id
+                                ? "Assigning..."
+                                : jobId
+                                  ? "Assign to job"
+                                  : "Assign to company"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                </>
+              )}
+
+              {hasGlobalSearched && !searchingGlobal && globalResults.length === 0 && (
+                <p
+                  className={`mt-4 rounded-lg border px-4 py-3 text-sm ${dark
+                    ? "border-white/15 bg-white/5 text-white/60"
+                    : "border-gray-200 bg-white text-black/60"
+                    }`}
+                >
+                  No global starter form found for this search.
+                </p>
+              )}
+            </div>
+
+            {!jobId && (
+              <div
+                className={`mb-6 rounded-2xl border p-4 ${dark
+                  ? "border-blue-400/20 bg-blue-500/10"
+                  : "border-blue-200 bg-blue-50"
+                  }`}
+              >
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className={dark ? "text-sm font-medium text-white" : "text-sm font-medium text-black"}>
+                      Assign selected crew members to a job
+                    </p>
+                    <p className={dark ? "text-xs text-white/55" : "text-xs text-black/55"}>
+                      Select one or more rows in All Jobs, then choose the target job.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <select
+                      value={selectedJobId}
+                      onChange={(e) => setSelectedJobId(e.target.value)}
+                      disabled={jobs.length === 0}
+                      className={`min-w-[220px] rounded-lg border px-3 py-2 text-sm outline-none ${dark
+                        ? "border-white/15 bg-white/10 text-white"
+                        : "border-gray-300 bg-white text-black"
+                        }`}
+                    >
+                      <option value="" className="text-black">
+                        {jobs.length === 0 ? "No job available" : "Choose a job"}
+                      </option>
+                      {jobs.map((job) => (
+                        <option key={job.id} value={job.id} className="text-black">
+                          {job.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <button
+                      onClick={handleAssignSelectedToJob}
+                      disabled={assigningToJob || selectedIds.size === 0 || !selectedJobId}
+                      className="
+                        rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow
+                        hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50
+                      "
+                    >
+                      {assigningToJob
+                        ? "Assigning..."
+                        : `Assign (${selectedIds.size})`}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {loading ? (
               <p className={dark ? "text-white/70" : "text-black/60"}>
@@ -611,7 +952,7 @@ export default function CrewManagementWindows() {
                           <button
                             onClick={() =>
                               navigate(
-                                `/windows/new-starter/${name}?job=${jobId ?? ""}&edit=${m.id}`
+                                `/windows/new-starter/${encodeURIComponent(name || "")}?job=${jobId ?? ""}&edit=${m.id}`
                               )
                             }
                             className={`
@@ -675,9 +1016,55 @@ export default function CrewManagementWindows() {
             `}
           >
             <h2 className="text-xl font-semibold mb-4">Crew Contract</h2>
-            <p className={dark ? "text-white/70" : "text-black/70"}>
-              Contract module coming soon…
-            </p>
+            {loadingContracts ? (
+              <p className={dark ? "text-white/70" : "text-black/70"}>Loading contracts...</p>
+            ) : contracts.length === 0 ? (
+              <p className={dark ? "text-white/70" : "text-black/70"}>
+                No generated contract for the crew members assigned to this job.
+              </p>
+            ) : (
+              <div className={`overflow-x-auto rounded-xl border ${dark ? "border-white/15" : "border-black/10"}`}>
+                <table className={`w-full text-left ${dark ? "text-white/90" : "text-black/90"}`}>
+                  <thead className={dark ? "bg-white/10 text-white/70" : "bg-black/5 text-black/70"}>
+                    <tr>
+                      <th className="px-4 py-3">Crew member</th>
+                      <th className="px-4 py-3">Contract</th>
+                      <th className="px-4 py-3">Date</th>
+                      <th className="px-4 py-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contracts.map((contract) => {
+                      const member = crewMembers.find((item) => item.id === contract.crew_member_id);
+                      const contractId = contract.id || contract.file_path;
+                      return (
+                        <tr key={contractId} className={dark ? "border-t border-white/15 text-white/90" : "border-t border-black/10 text-black/90"}>
+                          <td className="px-4 py-3 font-medium">
+                            {[member?.first_name, member?.last_name].filter(Boolean).join(" ") || "Crew member"}
+                          </td>
+                          <td className="px-4 py-3">{contract.contract_name}</td>
+                          <td className="px-4 py-3">
+                            {contract.created_at ? new Date(contract.created_at).toLocaleDateString("fr-FR") : ""}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              onClick={() => handleDownloadContract(contract)}
+                              disabled={downloadingContractId === contractId}
+                              className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm disabled:opacity-50 ${
+                                dark ? "bg-blue-500/25 hover:bg-blue-500/35 text-blue-100" : "bg-blue-100 hover:bg-blue-200 text-blue-800"
+                              }`}
+                            >
+                              <FileDown size={16} />
+                              {downloadingContractId === contractId ? "Downloading..." : "Download"}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </motion.div>
         )}
       </motion.main>
