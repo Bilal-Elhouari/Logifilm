@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld("electron", {
     checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),
     downloadUpdate: () => ipcRenderer.invoke("download-update"),
     installUpdate: () => ipcRenderer.invoke("install-update"),
+    openDownloads: () => ipcRenderer.invoke("open-downloads"),
     openReleases: () => ipcRenderer.invoke("open-releases"),
     onUpdateStatus: (callback: (status: unknown) => void) => {
         const listener = (_event: Electron.IpcRendererEvent, status: unknown) => callback(status);

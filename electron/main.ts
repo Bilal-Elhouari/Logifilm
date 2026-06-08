@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { app, BrowserWindow, ipcMain, net, shell } from "electron";
 import { autoUpdater } from "electron-updater";
 import path from "path";
 
@@ -8,14 +8,91 @@ const isDev = !app.isPackaged;
 let mainWindow: BrowserWindow | null = null;
 
 type UpdateStatus = {
-  state: "idle" | "checking" | "available" | "not-available" | "downloading" | "downloaded" | "error" | "disabled";
+  state: "idle" | "checking" | "available" | "not-available" | "downloading" | "downloaded" | "manual-download" | "error" | "disabled";
   version?: string;
   percent?: number;
   message?: string;
 };
 
+type GitHubRelease = {
+  tag_name: string;
+  assets: Array<{
+    name: string;
+    browser_download_url: string;
+  }>;
+};
+
+let macDmgUrl: string | null = null;
+let macUpdateVersion: string | null = null;
+
 function sendUpdateStatus(status: UpdateStatus) {
   mainWindow?.webContents.send("update-status", status);
+}
+
+function compareVersions(left: string, right: string) {
+  const normalize = (value: string) =>
+    value.replace(/^v/, "").split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const a = normalize(left);
+  const b = normalize(right);
+  const length = Math.max(a.length, b.length);
+
+  for (let index = 0; index < length; index += 1) {
+    const difference = (a[index] ?? 0) - (b[index] ?? 0);
+    if (difference !== 0) return difference;
+  }
+  return 0;
+}
+
+async function checkForMacManualUpdate() {
+  sendUpdateStatus({ state: "checking" });
+
+  const response = await net.fetch(
+    "https://api.github.com/repos/Bilal-Elhouari/Logifilm/releases/latest",
+    {
+      headers: {
+        Accept: "application/vnd.github+json",
+        "User-Agent": `Logifilm/${app.getVersion()}`,
+      },
+    },
+  );
+
+  if (response.status === 404) {
+    sendUpdateStatus({
+      state: "not-available",
+      message: "Aucune mise a jour publiee pour le moment.",
+    });
+    return;
+  }
+  if (!response.ok) throw new Error(`GitHub release request failed: ${response.status}`);
+
+  const release = await response.json() as GitHubRelease;
+  const version = release.tag_name.replace(/^v/, "");
+
+  if (compareVersions(version, app.getVersion()) <= 0) {
+    sendUpdateStatus({ state: "not-available", version: app.getVersion() });
+    return;
+  }
+
+  const architecture = process.arch === "arm64" ? "arm64" : "x64";
+  const dmg = release.assets.find((asset) =>
+    asset.name.endsWith(".dmg") && asset.name.includes(architecture),
+  );
+
+  if (!dmg) {
+    sendUpdateStatus({
+      state: "error",
+      message: `La version ${version} ne contient pas de fichier compatible avec ce Mac (${architecture}).`,
+    });
+    return;
+  }
+
+  macDmgUrl = dmg.browser_download_url;
+  macUpdateVersion = version;
+  sendUpdateStatus({
+    state: "available",
+    version,
+    message: "Une nouvelle version macOS est disponible. Son installation sera manuelle.",
+  });
 }
 
 function sendFriendlyUpdateError(error: unknown) {
@@ -141,6 +218,10 @@ app.whenReady().then(() => {
       return { ok: false };
     }
     try {
+      if (process.platform === "darwin") {
+        await checkForMacManualUpdate();
+        return { ok: true };
+      }
       await autoUpdater.checkForUpdates();
       return { ok: true };
     } catch (error) {
@@ -152,6 +233,18 @@ app.whenReady().then(() => {
   ipcMain.handle("download-update", async () => {
     if (!app.isPackaged) return { ok: false };
     try {
+      if (process.platform === "darwin") {
+        if (!macDmgUrl) await checkForMacManualUpdate();
+        if (!macDmgUrl) return { ok: false };
+
+        await shell.openExternal(macDmgUrl);
+        sendUpdateStatus({
+          state: "manual-download",
+          version: macUpdateVersion ?? undefined,
+          message: "Le DMG est en cours de telechargement. Ouvrez-le, puis remplacez Logifilm dans Applications.",
+        });
+        return { ok: true };
+      }
       await autoUpdater.downloadUpdate();
       return { ok: true };
     } catch (error) {
@@ -164,9 +257,14 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle("install-update", () => {
-    if (!app.isPackaged) return { ok: false };
+    if (!app.isPackaged || process.platform === "darwin") return { ok: false };
     autoUpdater.quitAndInstall(false, true);
     return { ok: true };
+  });
+
+  ipcMain.handle("open-downloads", async () => {
+    const result = await shell.openPath(app.getPath("downloads"));
+    return { ok: result === "", message: result || undefined };
   });
 
   ipcMain.handle("open-releases", async () => {
@@ -178,9 +276,11 @@ app.whenReady().then(() => {
 
   if (app.isPackaged) {
     setTimeout(() => {
-      autoUpdater.checkForUpdates().catch((error) => {
-        sendFriendlyUpdateError(error);
-      });
+      if (process.platform === "darwin") {
+        checkForMacManualUpdate().catch(sendFriendlyUpdateError);
+      } else {
+        autoUpdater.checkForUpdates().catch(sendFriendlyUpdateError);
+      }
     }, 5000);
   }
 });

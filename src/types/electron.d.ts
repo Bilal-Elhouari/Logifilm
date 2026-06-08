@@ -1,7 +1,7 @@
 export { };
 
 export type UpdateStatus = {
-    state: "idle" | "checking" | "available" | "not-available" | "downloading" | "downloaded" | "error" | "disabled";
+    state: "idle" | "checking" | "available" | "not-available" | "downloading" | "downloaded" | "manual-download" | "error" | "disabled";
     version?: string;
     percent?: number;
     message?: string;
@@ -20,6 +20,7 @@ declare global {
             checkForUpdates: () => Promise<{ ok: boolean; message?: string }>;
             downloadUpdate: () => Promise<{ ok: boolean; message?: string }>;
             installUpdate: () => Promise<{ ok: boolean }>;
+            openDownloads: () => Promise<{ ok: boolean; message?: string }>;
             openReleases: () => Promise<void>;
             onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
         };

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Download, ExternalLink, RefreshCw, RotateCcw, X } from "lucide-react";
+import { Download, ExternalLink, FolderOpen, RefreshCw, RotateCcw, X } from "lucide-react";
 import type { UpdateStatus } from "../types/electron";
 
 const initialStatus: UpdateStatus = { state: "idle" };
@@ -9,13 +9,17 @@ function statusLabel(status: UpdateStatus) {
     case "checking":
       return "Verification en cours...";
     case "available":
-      return `Version ${status.version ?? "plus recente"} disponible`;
+      return status.message
+        ? `Version ${status.version ?? "plus recente"} disponible. ${status.message}`
+        : `Version ${status.version ?? "plus recente"} disponible`;
     case "not-available":
       return status.message ?? "Logifilm est a jour";
     case "downloading":
       return `Telechargement ${status.percent ?? 0}%`;
     case "downloaded":
       return `Version ${status.version ?? ""} prete a installer`;
+    case "manual-download":
+      return status.message ?? "Ouvrez le DMG telecharge puis remplacez Logifilm dans Applications.";
     case "disabled":
       return status.message ?? "Disponible dans l'application installee";
     case "error":
@@ -116,7 +120,18 @@ export default function UpdateCenter() {
               </button>
             )}
 
-            {status.state !== "available" && status.state !== "downloaded" && (
+            {status.state === "manual-download" && isMac && (
+              <button
+                type="button"
+                onClick={() => window.electron?.openDownloads()}
+                className={`flex h-9 items-center gap-2 px-3 text-xs font-semibold ${primaryButtonClass}`}
+              >
+                <FolderOpen size={15} />
+                Ouvrir Telechargements
+              </button>
+            )}
+
+            {status.state !== "available" && status.state !== "downloaded" && status.state !== "manual-download" && (
               <button
                 type="button"
                 disabled={busy}

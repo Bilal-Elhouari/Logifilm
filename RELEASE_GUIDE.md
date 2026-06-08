@@ -39,9 +39,12 @@ Tant que cette page ne contient aucune release publiee avec les fichiers
 3. Le bouton `Mise a jour` permet de verifier, telecharger puis installer la
    nouvelle version.
 4. Aucun telechargement ne commence sans action de l'utilisateur.
-5. Windows telecharge uniquement son paquet NSIS `.exe`. macOS telecharge
-   uniquement son archive de mise a jour `.zip`. Chaque OS affiche son propre
-   theme dans le panneau de mise a jour.
+5. Windows telecharge son paquet NSIS `.exe`, redemarre puis applique la mise a
+   jour automatiquement.
+6. macOS non signe detecte la nouvelle version, choisit le `.dmg` compatible,
+   ouvre son telechargement puis guide l'utilisateur pour remplacer Logifilm
+   dans Applications.
+7. Chaque OS affiche son propre theme dans le panneau de mise a jour.
 
 ## Points importants
 
@@ -49,6 +52,8 @@ Tant que cette page ne contient aucune release publiee avec les fichiers
   verifier les releases sans jeton secret.
 - Windows utilise l'installateur NSIS et peut appliquer la mise a jour apres
   redemarrage.
+- Sans signature Apple, macOS ne permet pas a Logifilm de se remplacer
+  automatiquement. L'installation du nouveau `.dmg` reste manuelle.
 - Pour distribuer une application macOS sans avertissements de securite, une
   signature Apple Developer et une notarisation sont recommandees.
 - Ne republiez jamais deux releases avec le meme numero de version.
