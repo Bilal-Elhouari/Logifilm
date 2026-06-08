@@ -25,6 +25,7 @@ import NewStarterFormWindows from "./pages/NewStarterFormWindows";
 
 // 🛡️ Guards
 import RequireOS from "./components/RequireOS";
+import RequireLicense from "./components/RequireLicense";
 import UpdateCenter from "./components/UpdateCenter";
 
 export default function App() {
@@ -167,7 +168,9 @@ export default function App() {
           path="/mac/home"
           element={
             <RequireOS os="darwin">
-              <HomeMac />
+              <RequireLicense>
+                <HomeMac />
+              </RequireLicense>
             </RequireOS>
           }
         />
@@ -176,7 +179,9 @@ export default function App() {
           path="/mac/company/:name"
           element={
             <RequireOS os="darwin">
-              <DashboardMac />
+              <RequireLicense>
+                <DashboardMac />
+              </RequireLicense>
             </RequireOS>
           }
         />
@@ -185,7 +190,9 @@ export default function App() {
           path="/mac/company/:name/crew-management"
           element={
             <RequireOS os="darwin">
-              <CrewManagementMac />
+              <RequireLicense>
+                <CrewManagementMac />
+              </RequireLicense>
             </RequireOS>
           }
         />
@@ -194,7 +201,9 @@ export default function App() {
           path="/mac/company/:name/contracts"
           element={
             <RequireOS os="darwin">
-              <ContractsMac />
+              <RequireLicense>
+                <ContractsMac />
+              </RequireLicense>
             </RequireOS>
           }
         />
@@ -203,7 +212,9 @@ export default function App() {
           path="/mac/new-starter/:name"
           element={
             <RequireOS os="darwin">
-              <NewStarterFormMac />
+              <RequireLicense>
+                <NewStarterFormMac />
+              </RequireLicense>
             </RequireOS>
           }
         />
@@ -237,7 +248,9 @@ export default function App() {
           path="/windows/home"
           element={
             <RequireOS os="win32">
-              <HomeWindows />
+              <RequireLicense>
+                <HomeWindows />
+              </RequireLicense>
             </RequireOS>
           }
         />
@@ -246,7 +259,9 @@ export default function App() {
           path="/windows/company/:name"
           element={
             <RequireOS os="win32">
-              <DashboardWindows />
+              <RequireLicense>
+                <DashboardWindows />
+              </RequireLicense>
             </RequireOS>
           }
         />
@@ -255,7 +270,9 @@ export default function App() {
           path="/windows/company/:name/crew-management"
           element={
             <RequireOS os="win32">
-              <CrewManagementWindows />
+              <RequireLicense>
+                <CrewManagementWindows />
+              </RequireLicense>
             </RequireOS>
           }
         />
@@ -264,7 +281,9 @@ export default function App() {
           path="/windows/company/:name/contracts"
           element={
             <RequireOS os="win32">
-              <ContractsWindows />
+              <RequireLicense>
+                <ContractsWindows />
+              </RequireLicense>
             </RequireOS>
           }
         />
@@ -273,7 +292,9 @@ export default function App() {
           path="/windows/new-starter/:name"
           element={
             <RequireOS os="win32">
-              <NewStarterFormWindows />
+              <RequireLicense>
+                <NewStarterFormWindows />
+              </RequireLicense>
             </RequireOS>
           }
         />

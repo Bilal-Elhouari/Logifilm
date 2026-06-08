@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld("platform", {
 });
 
 contextBridge.exposeInMainWorld("electron", {
+    getDeviceInfo: () => ipcRenderer.invoke("get-device-info"),
     checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),
     downloadUpdate: () => ipcRenderer.invoke("download-update"),
     installUpdate: () => ipcRenderer.invoke("install-update"),
