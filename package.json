@@ -1,6 +1,6 @@
 {
   "name": "crew-management-software",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Desktop application for crew management (React + TypeScript + Tailwind + Vite + Electron).",
   "main": "dist-electron/main.js",
   "author": "",
