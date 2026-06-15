@@ -2,7 +2,6 @@ import jsPDF from "jspdf";
 import { CrewMember } from "../services/api";
 
 const PAGE_W = 612;
-const PAGE_H = 792;
 const TABLE_X = 23;
 const TABLE_Y = 74;
 const TABLE_W = 566;
@@ -83,10 +82,6 @@ function value(pdf: jsPDF, text: string | number | null | undefined, x: number, 
     align: opts.align || "left",
     maxWidth: opts.maxWidth,
   });
-}
-
-function centeredValue(pdf: jsPDF, text: string | number | null | undefined, x: number, y: number, w: number, size = 11) {
-  value(pdf, text, x + w / 2, y, { align: "center", size, maxWidth: w - 8 });
 }
 
 function fittedValue(

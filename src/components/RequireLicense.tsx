@@ -5,18 +5,16 @@ import { supabase } from "../supabaseClient";
 import {
   activateLicense,
   checkLicense,
-  getDeviceInfo,
-  type DeviceInfo,
   type LicenseStatus,
 } from "../services/license";
 
 const reasonMessages: Record<string, string> = {
   invalid_key: "Cette cle de licence est incorrecte.",
   expired: "Cette licence a expire.",
-  device_limit: "Cette licence a atteint sa limite d'appareils.",
+  account_limit: "Cette licence a atteint sa limite de comptes.",
   suspended: "Cette licence est suspendue.",
   revoked: "Cette licence a ete revoquee.",
-  not_activated: "Cette installation doit etre activee.",
+  not_activated: "Ce compte doit etre active.",
   authentication_required: "Connectez-vous avant d'activer la licence.",
 };
 
@@ -24,7 +22,6 @@ export default function RequireLicense({ children }: { children: ReactNode }) {
   const location = useLocation();
   const isMac = location.pathname.startsWith("/mac");
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
-  const [device, setDevice] = useState<DeviceInfo | null>(null);
   const [status, setStatus] = useState<LicenseStatus | null>(null);
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(true);
@@ -33,17 +30,15 @@ export default function RequireLicense({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
 
-    async function load() {
+    async function load(showSpinner = true) {
+      if (showSpinner) setBusy(true);
       try {
         const { data } = await supabase.auth.getSession();
         if (!active) return;
         setAuthenticated(Boolean(data.session));
         if (!data.session) return;
 
-        const currentDevice = await getDeviceInfo();
-        if (!active) return;
-        setDevice(currentDevice);
-        const currentStatus = await checkLicense(currentDevice.id);
+        const currentStatus = await checkLicense();
         if (!active) return;
         setStatus(currentStatus);
         if (!currentStatus.valid) {
@@ -57,19 +52,34 @@ export default function RequireLicense({ children }: { children: ReactNode }) {
     }
 
     load();
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+      setAuthenticated(Boolean(session));
+      if (session) {
+        void load(false);
+      } else {
+        setStatus(null);
+      }
+    });
+    const refreshId = window.setInterval(() => {
+      if (active) void load(false);
+    }, 5 * 60 * 1000);
+
     return () => {
       active = false;
+      authListener.subscription.unsubscribe();
+      window.clearInterval(refreshId);
     };
   }, []);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!device || !key.trim()) return;
+    if (!key.trim()) return;
     setBusy(true);
     setMessage("");
 
     try {
-      const result = await activateLicense(key, device);
+      const result = await activateLicense(key);
       setStatus(result);
       setKey("");
       if (!result.valid) {
@@ -118,7 +128,7 @@ export default function RequireLicense({ children }: { children: ReactNode }) {
         </div>
         <h1 className="text-xl font-semibold">Activer Logifilm</h1>
         <p className="mt-2 text-sm leading-6 text-white/60">
-          Entrez la cle fournie avec votre licence. Cette activation sera liee a cette installation.
+          Entrez la cle fournie avec votre licence. Cette activation sera liee a votre compte et fonctionnera sur tous vos ordinateurs.
         </p>
 
         <form onSubmit={submit} className="mt-6 space-y-3">
@@ -139,11 +149,11 @@ export default function RequireLicense({ children }: { children: ReactNode }) {
 
           <button
             type="submit"
-            disabled={busy || !device || !key.trim()}
+            disabled={busy || !key.trim()}
             className={`flex h-11 w-full items-center justify-center gap-2 text-sm font-semibold disabled:opacity-50 ${buttonClass}`}
           >
             {busy ? <LoaderCircle className="animate-spin" size={17} /> : <ShieldCheck size={17} />}
-            Activer cette installation
+            Activer ce compte
           </button>
         </form>
 

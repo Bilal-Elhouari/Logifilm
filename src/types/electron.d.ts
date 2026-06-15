@@ -17,7 +17,6 @@ declare global {
             version: string;
         };
         electron?: {
-            getDeviceInfo: () => Promise<{ id: string; name: string; platform: string }>;
             checkForUpdates: () => Promise<{ ok: boolean; message?: string }>;
             downloadUpdate: () => Promise<{ ok: boolean; message?: string }>;
             installUpdate: () => Promise<{ ok: boolean }>;

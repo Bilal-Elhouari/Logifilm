@@ -137,7 +137,11 @@ export default function DashboardWindows() {
       label: "Contrat",
       path: `/windows/company/${encodeURIComponent(name || "")}/contracts`,
     },
-    { icon: <Wallet size={18} />, label: "Payroll" },
+    {
+      icon: <Wallet size={18} />,
+      label: "Payroll",
+      path: `/windows/company/${encodeURIComponent(name || "")}/payroll`,
+    },
   ];
 
   /* ---------------- WINDOWS UI ---------------- */
@@ -207,7 +211,10 @@ export default function DashboardWindows() {
               boxShadow: "0 0 10px rgba(255,77,77,0.25)",
             }}
             whileTap={{ scale: 0.96 }}
-            onClick={() => navigate("/windows/home")}
+            onClick={async () => {
+              await supabase.auth.signOut();
+              navigate("/windows/auth");
+            }}
             className={`
               flex items-center justify-center gap-2 py-2 rounded-xl
               font-medium text-sm transition

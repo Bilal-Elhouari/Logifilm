@@ -140,7 +140,11 @@ export default function DashboardMac() {
       label: "Contrat",
       path: `/mac/company/${encodeURIComponent(name || "")}/contracts`,
     },
-    { icon: <Wallet size={18} />, label: "Payroll" },
+    {
+      icon: <Wallet size={18} />,
+      label: "Payroll",
+      path: `/mac/company/${encodeURIComponent(name || "")}/payroll`,
+    },
   ];
 
   /* ---------------- macOS UI ---------------- */
@@ -215,7 +219,10 @@ export default function DashboardMac() {
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => navigate("/mac/home")}
+            onClick={async () => {
+              await supabase.auth.signOut();
+              navigate("/mac/auth");
+            }}
             className={`
               flex items-center justify-center gap-2 py-2 rounded-2xl
               font-medium text-sm transition border

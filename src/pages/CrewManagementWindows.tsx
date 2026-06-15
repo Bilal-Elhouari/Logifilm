@@ -187,7 +187,6 @@ export default function CrewManagementWindows() {
     // -----------------------------
     // DATA MAPPING
     // -----------------------------
-    const cleanNumber = (val: any) => val ? val.toString() : "";
 
     // Map existing member object to the form structure
     const leftFieldsRaw = [

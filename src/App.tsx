@@ -1,27 +1,29 @@
 import { Routes, Route, useNavigate, Navigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import { lazy, Suspense } from "react";
 
 // 🧭 Pages principales
-import StartPageMac from "./pages/StartPage";
-import StartPageWindows from "./pages/StartPageWindows";
-import HomeMac from "./pages/HomeMac";
-import HomeWindows from "./pages/HomeWindows";
-import DashboardMac from "./pages/DashboardMac";
-import DashboardWindows from "./pages/DashboardWindows";
-import ContractsMac from "./pages/ContractsMac";
-import ContractsWindows from "./pages/ContractsWindows";
+const StartPageMac = lazy(() => import("./pages/StartPage"));
+const StartPageWindows = lazy(() => import("./pages/StartPageWindows"));
+const HomeMac = lazy(() => import("./pages/HomeMac"));
+const HomeWindows = lazy(() => import("./pages/HomeWindows"));
+const DashboardMac = lazy(() => import("./pages/DashboardMac"));
+const DashboardWindows = lazy(() => import("./pages/DashboardWindows"));
+const ContractsMac = lazy(() => import("./pages/ContractsMac"));
+const ContractsWindows = lazy(() => import("./pages/ContractsWindows"));
+const PayrollInvoices = lazy(() => import("./pages/PayrollInvoices"));
 
 // 🧩 Auth
-import AuthMac from "./pages/AuthMac";
-import AuthWindows from "./pages/AuthWindows";
+const AuthMac = lazy(() => import("./pages/AuthMac"));
+const AuthWindows = lazy(() => import("./pages/AuthWindows"));
 
 // 🧩 Crew Management
-import CrewManagementMac from "./pages/CrewManagementMac";
-import CrewManagementWindows from "./pages/CrewManagementWindows";
+const CrewManagementMac = lazy(() => import("./pages/CrewManagementMac"));
+const CrewManagementWindows = lazy(() => import("./pages/CrewManagementWindows"));
 
 // 🧾 Formulaires
-import NewStarterFormMac from "./pages/NewStarterFormMac";
-import NewStarterFormWindows from "./pages/NewStarterFormWindows";
+const NewStarterFormMac = lazy(() => import("./pages/NewStarterFormMac"));
+const NewStarterFormWindows = lazy(() => import("./pages/NewStarterFormWindows"));
 
 // 🛡️ Guards
 import RequireOS from "./components/RequireOS";
@@ -33,16 +35,13 @@ export default function App() {
 
   // 🔍 ENV
   const isDev = import.meta.env.DEV;
-  const platform = import.meta.env.VITE_PLATFORM;
 
   // 🧠 Détection Electron (clé de la solution)
-  const isElectron =
-    typeof window !== "undefined" &&
-    window.isElectron === true;
 
   return (
-    <AnimatePresence mode="wait">
-      <Routes>
+    <>
+      <Suspense key="routes" fallback={<div className="h-screen w-full bg-[#0a0f1c]" />}>
+        <Routes>
         {/* ================================
               ROOT — MENU / REDIRECTION
         ================================= */}
@@ -209,6 +208,17 @@ export default function App() {
         />
 
         <Route
+          path="/mac/company/:name/payroll"
+          element={
+            <RequireOS os="darwin">
+              <RequireLicense>
+                <PayrollInvoices />
+              </RequireLicense>
+            </RequireOS>
+          }
+        />
+
+        <Route
           path="/mac/new-starter/:name"
           element={
             <RequireOS os="darwin">
@@ -289,6 +299,17 @@ export default function App() {
         />
 
         <Route
+          path="/windows/company/:name/payroll"
+          element={
+            <RequireOS os="win32">
+              <RequireLicense>
+                <PayrollInvoices />
+              </RequireLicense>
+            </RequireOS>
+          }
+        />
+
+        <Route
           path="/windows/new-starter/:name"
           element={
             <RequireOS os="win32">
@@ -298,9 +319,10 @@ export default function App() {
             </RequireOS>
           }
         />
-      </Routes>
+        </Routes>
+      </Suspense>
 
-      <UpdateCenter />
-    </AnimatePresence>
+      <UpdateCenter key="update-center" />
+    </>
   );
 }

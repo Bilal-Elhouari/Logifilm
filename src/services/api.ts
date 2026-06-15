@@ -1,4 +1,5 @@
 import { supabase } from "../supabaseClient";
+import { normalizeSearchTerm, uniqueCrewMembers } from "../utils/search";
 
 export interface CrewMember {
     id?: string;
@@ -256,75 +257,26 @@ export const api = {
      * Search in the global starter form database, across all companies and jobs.
      */
     searchCrewMembers: async (search: string) => {
-        const normalize = (value: unknown) =>
-            String(value || "")
-                .normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "")
-                .toLowerCase();
-
-        const uniquePeople = (members: CrewMember[]) => {
-            const byPerson = new Map<string, CrewMember>();
-
-            members.forEach((member) => {
-                const idCard = normalize(member.id_card_number).replace(/\s+/g, "");
-                const fallbackKey = [
-                    normalize(member.first_name).trim(),
-                    normalize(member.last_name).trim(),
-                    normalize(member.date_of_birth).trim(),
-                    normalize(member.phone).trim(),
-                    normalize(member.mobile).trim(),
-                ].join("|");
-                const key = idCard || fallbackKey;
-
-                if (!key || key === "||||") return;
-
-                if (!byPerson.has(key)) {
-                    byPerson.set(key, member);
-                }
-            });
-
-            return Array.from(byPerson.values());
-        };
-
-        const term = search.trim().replace(/[%,]/g, "");
+        const term = normalizeSearchTerm(search);
 
         if (!term) return [];
 
-        const { data, error } = await supabase
-            .from("crew_members")
-            .select("*")
-            .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%`)
-            .order("created_at", { ascending: false })
-            .limit(30);
-
-        if (error) throw error;
-
-        if (data && data.length > 0) return uniquePeople(data);
-
-        const { data: fallbackData, error: fallbackError } = await supabase
-            .from("crew_members")
-            .select("*")
-            .order("created_at", { ascending: false })
-            .limit(500);
-
-        if (fallbackError) throw fallbackError;
-
-        const terms = normalize(term).split(/\s+/).filter(Boolean);
-
-        const filtered = (fallbackData || []).filter((member) => {
-            const haystack = normalize([
-                member.first_name,
-                member.last_name,
-                member.position,
-                member.department,
-                member.project_title,
-                member.id_card_number,
-            ].join(" "));
-
-            return terms.every((part) => haystack.includes(part));
+        const { data, error } = await supabase.rpc("search_crew_members", {
+            p_search: term,
         });
 
-        return uniquePeople(filtered);
+        if (!error) return uniqueCrewMembers((data || []) as CrewMember[]);
+
+        // Compatibility while the security migration is being deployed.
+        const { data: fallbackData, error: fallbackError } = await supabase
+            .from("crew_members")
+            .select("id,company_id,job_id,first_name,last_name,position,department,project_title,id_card_number,date_of_birth,phone,mobile")
+            .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%`)
+            .order("created_at", { ascending: false })
+            .limit(50);
+
+        if (fallbackError) throw fallbackError;
+        return uniqueCrewMembers((fallbackData || []) as CrewMember[]);
     },
 
     /**
@@ -440,6 +392,20 @@ export const api = {
      * Delete a Crew Member
      */
     deleteCrewMember: async (id: string) => {
+        const { data: files, error: listError } = await supabase.storage
+            .from("contracts")
+            .list(id, { limit: 1000 });
+
+        if (listError) throw listError;
+
+        const filePaths = (files || []).map((file) => `${id}/${file.name}`);
+        if (filePaths.length > 0) {
+            const { error: removeError } = await supabase.storage
+                .from("contracts")
+                .remove(filePaths);
+            if (removeError) throw removeError;
+        }
+
         const { error } = await supabase
             .from("crew_members")
             .delete()

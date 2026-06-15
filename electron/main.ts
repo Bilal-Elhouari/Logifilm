@@ -1,13 +1,11 @@
 import { app, BrowserWindow, ipcMain, net, session, shell } from "electron";
 import { autoUpdater } from "electron-updater";
-import { randomUUID } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import { hostname } from "os";
 import path from "path";
 
 // Check if we're running from dist (production) or dev
 // app.isPackaged is true when running from built executable, false in dev
-const isDev = !app.isPackaged;
+const isClientMode = process.env.LOGIFILM_CLIENT_MODE === "1";
+const isDev = !app.isPackaged && !isClientMode;
 let mainWindow: BrowserWindow | null = null;
 
 type UpdateStatus = {
@@ -27,21 +25,6 @@ type GitHubRelease = {
 
 let macDmgUrl: string | null = null;
 let macUpdateVersion: string | null = null;
-
-function getInstallationId() {
-  const directory = app.getPath("userData");
-  const filePath = path.join(directory, "installation-id");
-
-  if (existsSync(filePath)) {
-    const existingId = readFileSync(filePath, "utf8").trim();
-    if (existingId) return existingId;
-  }
-
-  mkdirSync(directory, { recursive: true });
-  const installationId = randomUUID();
-  writeFileSync(filePath, installationId, { encoding: "utf8", mode: 0o600 });
-  return installationId;
-}
 
 function sendUpdateStatus(status: UpdateStatus) {
   mainWindow?.webContents.send("update-status", status);
@@ -246,19 +229,13 @@ app.whenReady().then(() => {
 
   // IPC Handler for checking if app is packaged
   ipcMain.on('app-is-packaged', (event) => {
-    event.returnValue = app.isPackaged;
+    event.returnValue = app.isPackaged || isClientMode;
   });
 
   // IPC Handler for app version
   ipcMain.on('get-app-version', (event) => {
     event.returnValue = app.getVersion();
   });
-
-  ipcMain.handle("get-device-info", () => ({
-    id: getInstallationId(),
-    name: hostname(),
-    platform: process.platform,
-  }));
 
   ipcMain.handle("check-for-updates", async () => {
     if (!app.isPackaged) {
@@ -295,7 +272,7 @@ app.whenReady().then(() => {
       }
       await autoUpdater.downloadUpdate();
       return { ok: true };
-    } catch (error) {
+    } catch {
       sendUpdateStatus({
         state: "error",
         message: "Telechargement impossible. Controlez votre connexion puis reessayez.",
