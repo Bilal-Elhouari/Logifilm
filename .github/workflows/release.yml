@@ -33,16 +33,30 @@ jobs:
       - name: Check types and tests
         run: npm run check
 
-      # Build & Release for macOS
-      - name: Build & Release (macOS)
+      - name: Build macOS
         if: matrix.os == 'macos-latest'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run release:mac
+        run: npm run build:mac
 
-      # Build & Release for Windows
-      - name: Build & Release (Windows)
+      - name: Publish macOS assets
+        if: matrix.os == 'macos-latest'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.dmg
+            release/*.dmg.blockmap
+            release/*.zip
+            release/*.zip.blockmap
+            release/latest-mac.yml
+
+      - name: Build Windows
         if: matrix.os == 'windows-latest'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run release:win
+        run: npm run build:win
+
+      - name: Publish Windows assets
+        if: matrix.os == 'windows-latest'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.exe
+            release/*.exe.blockmap
+            release/latest.yml
