@@ -197,6 +197,17 @@ export default function App() {
         />
 
         <Route
+          path="/mac/company/:name/project/:projectId"
+          element={
+            <RequireOS os="darwin">
+              <RequireLicense>
+                <DashboardMac />
+              </RequireLicense>
+            </RequireOS>
+          }
+        />
+
+        <Route
           path="/mac/company/:name/contracts"
           element={
             <RequireOS os="darwin">
@@ -282,6 +293,17 @@ export default function App() {
             <RequireOS os="win32">
               <RequireLicense>
                 <CrewManagementWindows />
+              </RequireLicense>
+            </RequireOS>
+          }
+        />
+
+        <Route
+          path="/windows/company/:name/project/:projectId"
+          element={
+            <RequireOS os="win32">
+              <RequireLicense>
+                <DashboardWindows />
               </RequireLicense>
             </RequireOS>
           }

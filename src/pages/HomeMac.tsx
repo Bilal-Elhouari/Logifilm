@@ -13,14 +13,17 @@ export default function HomeMac() {
   const [selected, setSelected] = useState<string | null>(null);
   const [scale, setScale] = useState(1);
   const [companies, setCompanies] = useState<string[]>([]);
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingProjects, setLoadingProjects] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   // State for new company form (CONTROLLED INPUTS)
   const [newCompany, setNewCompany] = useState("");
-  const [newJob, setNewJob] = useState("");
+  const [newProject, setNewProject] = useState("");
+  const [selectedProjectId, setSelectedProjectId] = useState("");
 
   /* AUTH CHECK */
   useEffect(() => {
@@ -45,6 +48,31 @@ export default function HomeMac() {
     }
     fetchCompanies();
   }, []);
+
+  useEffect(() => {
+    setProjects([]);
+    setSelectedProjectId("");
+    setNewProject("");
+
+    if (!selected || selected === "Nouveau") return;
+    const companyName = selected;
+
+    async function fetchProjects() {
+      setLoadingProjects(true);
+      try {
+        const company = await api.getCompanyByName(companyName);
+        const data = await api.getJobsByCompany(company.id);
+        setProjects((data || []) as { id: string; name: string }[]);
+      } catch (err) {
+        console.error("Error fetching projects:", err);
+        alert("Impossible de charger les projets de cette company.");
+      } finally {
+        setLoadingProjects(false);
+      }
+    }
+
+    fetchProjects();
+  }, [selected]);
 
   /* RESPONSIVE SCALE (DEBOUNCED) */
   useEffect(() => {
@@ -91,19 +119,23 @@ export default function HomeMac() {
   const handleEnter = async () => {
     if (selected === "Nouveau") {
       const companyName = newCompany.trim();
-      const jobName = newJob.trim();
+      const projectName = newProject.trim();
 
       if (!companyName) {
         alert("Veuillez entrer un nom de company.");
         return;
       }
+      if (!projectName) {
+        alert("Veuillez entrer un nom de projet.");
+        return;
+      }
 
       try {
         const createdCompany = await api.createCompany(companyName);
-        if (jobName) {
-          await api.createJob(jobName, createdCompany.id);
-        }
-        navigate(`/mac/company/${encodeURIComponent(companyName)}`);
+        const createdProject = await api.createJob(projectName, createdCompany.id);
+        navigate(
+          `/mac/company/${encodeURIComponent(companyName)}/project/${createdProject.id}`
+        );
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
         alert("Erreur creation: " + message);
@@ -111,7 +143,32 @@ export default function HomeMac() {
       return;
     }
 
-    navigate(`/mac/company/${encodeURIComponent(selected || "")}`);
+    if (!selected) return;
+
+    try {
+      const company = await api.getCompanyByName(selected);
+      let projectId = selectedProjectId;
+
+      if (selectedProjectId === "__new" || projects.length === 0) {
+        const projectName = newProject.trim();
+        if (!projectName) {
+          alert("Veuillez entrer un nom de projet.");
+          return;
+        }
+        const createdProject = await api.createJob(projectName, company.id);
+        projectId = createdProject.id;
+      }
+
+      if (!projectId) {
+        alert("Veuillez selectionner un projet.");
+        return;
+      }
+
+      navigate(`/mac/company/${encodeURIComponent(selected)}/project/${projectId}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      alert("Erreur ouverture projet: " + message);
+    }
   };
 
   const handleSelect = (value: string) => {
@@ -267,11 +324,63 @@ export default function HomeMac() {
                   onChange={setNewCompany}
                 />
                 <Field
-                  label="Job optionnel"
-                  placeholder="Entrer votre job si besoin"
-                  value={newJob}
-                  onChange={setNewJob}
+                  label="Projet"
+                  placeholder="Entrer le premier projet"
+                  value={newProject}
+                  onChange={setNewProject}
                 />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* EXISTING COMPANY PROJECT PICKER */}
+          <AnimatePresence>
+            {selected && selected !== "Nouveau" && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 12 }}
+                transition={{ duration: 0.35 }}
+                className="space-y-4 mb-8"
+              >
+                <div className="flex flex-col">
+                  <label className="text-sm font-medium text-black/70 dark:text-white/70 mb-1">
+                    Projet
+                  </label>
+                  <select
+                    value={projects.length === 0 ? "__new" : selectedProjectId}
+                    onChange={(e) => setSelectedProjectId(e.target.value)}
+                    disabled={loadingProjects}
+                    className="
+                      w-full px-4 py-3 rounded-2xl
+                      bg-gray-100 dark:bg-white/5
+                      border border-gray-300 dark:border-white/10
+                      text-black dark:text-white
+                      focus:outline-none
+                    "
+                  >
+                    <option value="" className="text-black">
+                      {loadingProjects ? "Chargement des projets..." : "Selectionnez un projet"}
+                    </option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id} className="text-black">
+                        {project.name}
+                      </option>
+                    ))}
+                    <option value="__new" className="text-black">
+                      + Nouveau projet
+                    </option>
+                  </select>
+                </div>
+
+                {(selectedProjectId === "__new" || projects.length === 0) && (
+                  <Field
+                    label={projects.length === 0 ? "Premier projet" : "Nouveau projet"}
+                    placeholder="Entrer le nom du projet"
+                    value={newProject}
+                    onChange={setNewProject}
+                  />
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -299,7 +408,7 @@ export default function HomeMac() {
                     transition-all
                   "
                 >
-                  Entrer
+                  Entrer dans le projet
                 </button>
               </motion.div>
             )}

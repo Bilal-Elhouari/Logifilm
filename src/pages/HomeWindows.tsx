@@ -8,12 +8,15 @@ export default function HomeWindows() {
   const [selected, setSelected] = useState<string | null>(null);
   const [scale, setScale] = useState(1);
   const [companies, setCompanies] = useState<string[]>([]);
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingProjects, setLoadingProjects] = useState(false);
   const navigate = useNavigate();
 
   // State for new company form
   const [newCompany, setNewCompany] = useState("");
-  const [newJob, setNewJob] = useState("");
+  const [newProject, setNewProject] = useState("");
+  const [selectedProjectId, setSelectedProjectId] = useState("");
 
   /* ---------------------------------------------------------
      🌗 DARK / LIGHT AUTO (Windows)
@@ -59,6 +62,31 @@ export default function HomeWindows() {
     fetchCompanies();
   }, []);
 
+  useEffect(() => {
+    setProjects([]);
+    setSelectedProjectId("");
+    setNewProject("");
+
+    if (!selected || selected === "Nouveau") return;
+    const companyName = selected;
+
+    async function fetchProjects() {
+      setLoadingProjects(true);
+      try {
+        const company = await api.getCompanyByName(companyName);
+        const data = await api.getJobsByCompany(company.id);
+        setProjects((data || []) as { id: string; name: string }[]);
+      } catch (error) {
+        console.error("Error fetching projects:", error);
+        alert("Unable to load projects for this company.");
+      } finally {
+        setLoadingProjects(false);
+      }
+    }
+
+    fetchProjects();
+  }, [selected]);
+
   /* ---------------------------------------------------------
      RESPONSIVE SCALE
   --------------------------------------------------------- */
@@ -75,6 +103,63 @@ export default function HomeWindows() {
   }, []);
 
   const showEnterButton = selected !== null && selected !== "";
+
+  async function handleEnter() {
+    if (selected === "Nouveau") {
+      const companyName = newCompany.trim();
+      const projectName = newProject.trim();
+
+      if (!companyName) {
+        alert("Please enter a company name");
+        return;
+      }
+      if (!projectName) {
+        alert("Please enter a project name");
+        return;
+      }
+
+      try {
+        const createdCompany = await api.createCompany(companyName);
+        const createdProject = await api.createJob(projectName, createdCompany.id);
+        navigate(
+          `/windows/company/${encodeURIComponent(companyName)}/project/${createdProject.id}`
+        );
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        alert("Error creating company or project: " + message);
+      }
+      return;
+    }
+
+    if (!selected) return;
+
+    try {
+      const company = await api.getCompanyByName(selected);
+      let projectId = selectedProjectId;
+
+      if (selectedProjectId === "__new" || projects.length === 0) {
+        const projectName = newProject.trim();
+        if (!projectName) {
+          alert("Please enter a project name");
+          return;
+        }
+        const createdProject = await api.createJob(projectName, company.id);
+        projectId = createdProject.id;
+      }
+
+      if (!projectId) {
+        alert("Please select a project.");
+        return;
+      }
+
+      navigate(
+        `/windows/company/${encodeURIComponent(selected)}/project/${projectId}`
+      );
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      alert("Error opening project: " + message);
+    }
+  }
 
   return (
     <div
@@ -175,11 +260,64 @@ export default function HomeWindows() {
                 />
                 <Field
                   dark={dark}
-                  label="Job optional"
-                  placeholder="Enter a job if needed"
-                  value={newJob}
-                  onChange={setNewJob}
+                  label="Project"
+                  placeholder="Enter the first project"
+                  value={newProject}
+                  onChange={setNewProject}
                 />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* EXISTING COMPANY PROJECT PICKER */}
+          <AnimatePresence>
+            {selected && selected !== "Nouveau" && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 12 }}
+                transition={{ duration: 0.25 }}
+                className="space-y-4 mb-8"
+              >
+                <div className="flex flex-col">
+                  <label className={`text-sm mb-1 font-medium ${dark ? "text-white/90" : "text-gray-700"}`}>
+                    Project
+                  </label>
+                  <select
+                    value={projects.length === 0 ? "__new" : selectedProjectId}
+                    onChange={(e) => setSelectedProjectId(e.target.value)}
+                    disabled={loadingProjects}
+                    className={`
+                      w-full px-4 py-3 rounded-xl border transition
+                      ${dark
+                        ? "bg-white/10 border-white/20 text-white"
+                        : "bg-white border-gray-300 text-black"
+                      }
+                    `}
+                  >
+                    <option value="" className="text-black">
+                      {loadingProjects ? "Loading projects..." : "Select a project"}
+                    </option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id} className="text-black">
+                        {project.name}
+                      </option>
+                    ))}
+                    <option value="__new" className="text-black">
+                      + New project
+                    </option>
+                  </select>
+                </div>
+
+                {(selectedProjectId === "__new" || projects.length === 0) && (
+                  <Field
+                    dark={dark}
+                    label={projects.length === 0 ? "First project" : "New project"}
+                    placeholder="Enter project name"
+                    value={newProject}
+                    onChange={setNewProject}
+                  />
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -197,30 +335,7 @@ export default function HomeWindows() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.97 }}
-                  onClick={async () => {
-                    if (selected === "Nouveau") {
-                      const companyName = newCompany.trim();
-                      const jobName = newJob.trim();
-
-                      if (!companyName) {
-                        alert("Please enter a company name");
-                        return;
-                      }
-
-                      try {
-                        const createdCompany = await api.createCompany(companyName);
-                        if (jobName) {
-                          await api.createJob(jobName, createdCompany.id);
-                        }
-                        navigate(`/windows/company/${encodeURIComponent(companyName)}`);
-                      } catch (err: any) {
-                        alert("Error creating company or job: " + (err.message || err));
-                        return;
-                      }
-                    } else {
-                      navigate(`/windows/company/${encodeURIComponent(selected)}`);
-                    }
-                  }}
+                  onClick={handleEnter}
                   className={`
                     px-12 py-3 rounded-xl font-semibold transition-all shadow-md
                     ${dark
@@ -229,7 +344,7 @@ export default function HomeWindows() {
                     }
                   `}
                 >
-                  Enter
+                  Enter project
                 </motion.button>
               </motion.div>
             )}

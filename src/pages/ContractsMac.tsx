@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Download, FileText, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import { saveAs } from "file-saver";
@@ -9,6 +9,8 @@ import { createContractPdf } from "../utils/contractPdf";
 export default function ContractsMac() {
   const { name } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const jobId = searchParams.get("job");
   const [companyMembers, setCompanyMembers] = useState<CrewMember[]>([]);
   const [searchResults, setSearchResults] = useState<CrewMember[]>([]);
   const [knownMembers, setKnownMembers] = useState<CrewMember[]>([]);
@@ -17,6 +19,7 @@ export default function ContractsMac() {
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [projectName, setProjectName] = useState<string | null>(null);
 
   const rememberMembers = (members: CrewMember[]) => {
     setKnownMembers((prev) => {
@@ -35,7 +38,7 @@ export default function ContractsMac() {
       setLoading(true);
       try {
         const company = await api.getCompanyByName(name);
-        const members = await api.getCrewMembers(company.id);
+        const members = await api.getCrewMembers(company.id, jobId || undefined);
         setCompanyMembers(members || []);
         rememberMembers(members || []);
 
@@ -56,13 +59,39 @@ export default function ContractsMac() {
     }
 
     load();
-  }, [name]);
+  }, [name, jobId]);
+
+  useEffect(() => {
+    if (!jobId) {
+      setProjectName(null);
+      return;
+    }
+
+    api.getJobById(jobId)
+      .then((project) => setProjectName(project?.name || null))
+      .catch(() => setProjectName(null));
+  }, [jobId]);
 
   useEffect(() => {
     const term = query.trim();
 
     if (!term) {
       setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+
+    if (jobId) {
+      const normalized = term.toLowerCase();
+      setSearchResults(companyMembers.filter((member) =>
+        [
+          member.first_name,
+          member.last_name,
+          member.id_card_number,
+          member.position,
+          member.department,
+        ].some((value) => String(value || "").toLowerCase().includes(normalized))
+      ));
       setSearching(false);
       return;
     }
@@ -82,7 +111,7 @@ export default function ContractsMac() {
     }, 250);
 
     return () => window.clearTimeout(timeoutId);
-  }, [query]);
+  }, [companyMembers, jobId, query]);
 
   const filteredMembers = useMemo(() => {
     return query.trim() ? searchResults : companyMembers;
@@ -139,7 +168,9 @@ export default function ContractsMac() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-semibold">Contrats</h1>
-          <p className="text-sm text-black/55 dark:text-white/55">{name}</p>
+          <p className="text-sm text-black/55 dark:text-white/55">
+            {jobId ? `${name} / ${projectName || "Project"}` : name}
+          </p>
         </div>
         <button
           onClick={() => navigate(-1)}

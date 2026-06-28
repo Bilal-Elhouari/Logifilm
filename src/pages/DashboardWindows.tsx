@@ -6,11 +6,12 @@ import { supabase } from "../supabaseClient";
 import { api } from "../services/api";
 
 export default function DashboardWindows() {
-  const { name } = useParams();
+  const { name, projectId } = useParams();
   const navigate = useNavigate();
 
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [jobs, setJobs] = useState<any[]>([]);
+  const [projectName, setProjectName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingCompany, setLoadingCompany] = useState(true);
   const [addingJob, setAddingJob] = useState(false);
@@ -86,6 +87,20 @@ export default function DashboardWindows() {
     window.setTimeout(() => newJobInputRef.current?.focus(), 50);
   }, [showJobInput]);
 
+  useEffect(() => {
+    if (!projectId) {
+      setProjectName(null);
+      return;
+    }
+
+    api.getJobById(projectId)
+      .then((project) => setProjectName(project?.name || null))
+      .catch((error) => {
+        console.error("Error loading project:", error);
+        setProjectName(null);
+      });
+  }, [projectId]);
+
   /* ---------------- SAVE JOB ---------------- */
   async function saveJob() {
     if (!companyId) return alert("Company non chargee.");
@@ -105,8 +120,8 @@ export default function DashboardWindows() {
       setNewJobName("");
       setShowJobInput(false);
     } catch (error) {
-      console.error("Erreur creation job:", error);
-      alert(error instanceof Error ? error.message : "Erreur creation job.");
+      console.error("Erreur creation project:", error);
+      alert(error instanceof Error ? error.message : "Erreur creation project.");
     } finally {
       setAddingJob(false);
     }
@@ -115,32 +130,40 @@ export default function DashboardWindows() {
   /* ---------------- DELETE JOB ---------------- */
   const handleDeleteJob = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Empêche la navigation
-    if (!confirm("Voulez-vous vraiment supprimer ce job ? Cette action est irréversible.")) return;
+    if (!confirm("Voulez-vous vraiment supprimer ce project ? Cette action est irreversible.")) return;
 
     try {
       await api.deleteJob(id);
       setJobs((prev) => prev.filter((j) => j.id !== id));
     } catch (err) {
-      console.error("Erreur suppression job:", err);
-      alert("Erreur lors de la suppression du job.");
+      console.error("Erreur suppression project:", err);
+      alert("Erreur lors de la suppression du project.");
     }
   };
 
+  const projectQuery = projectId ? `?job=${projectId}` : "";
   const sidebarItems = [
+    ...(projectId
+      ? [{
+          icon: <FileText size={18} />,
+          label: "Company Projects",
+          path: `/windows/company/${encodeURIComponent(name || "")}`,
+        }]
+      : []),
     {
       icon: <Users size={18} />,
       label: "Crew Management",
-      path: `/windows/company/${encodeURIComponent(name || "")}/crew-management`,
+      path: `/windows/company/${encodeURIComponent(name || "")}/crew-management${projectQuery}`,
     },
     {
       icon: <FileText size={18} />,
       label: "Contrat",
-      path: `/windows/company/${encodeURIComponent(name || "")}/contracts`,
+      path: `/windows/company/${encodeURIComponent(name || "")}/contracts${projectQuery}`,
     },
     {
       icon: <Wallet size={18} />,
       label: "Payroll",
-      path: `/windows/company/${encodeURIComponent(name || "")}/payroll`,
+      path: `/windows/company/${encodeURIComponent(name || "")}/payroll${projectQuery}`,
     },
   ];
 
@@ -239,10 +262,28 @@ export default function DashboardWindows() {
           }`}
       >
         <h1 className="text-3xl font-semibold mb-8">
-          Dashboard – {name}
+          {projectId ? `Project Dashboard - ${projectName || "Project"}` : `Dashboard - ${name}`}
         </h1>
 
-        {/* ---------------- JOBS CARD ---------------- */}
+        {projectId ? (
+          <div className="grid gap-5 md:grid-cols-3">
+            {sidebarItems.slice(1).map((item) => (
+              <button
+                key={item.label}
+                onClick={() => navigate(item.path)}
+                className={`rounded-3xl border p-7 text-left shadow-xl transition hover:scale-[1.02] ${
+                  dark ? "border-white/20 bg-white/10 hover:bg-white/15" : "border-black/10 bg-white hover:bg-blue-50"
+                }`}
+              >
+                <div className="mb-5 text-blue-500">{item.icon}</div>
+                <h2 className="text-xl font-semibold">{item.label}</h2>
+                <p className={dark ? "mt-2 text-sm text-white/55" : "mt-2 text-sm text-black/55"}>
+                  Documents et donnees separes pour ce projet uniquement.
+                </p>
+              </button>
+            ))}
+          </div>
+        ) : (
         <div
           className={`
             rounded-3xl p-8 mb-10 backdrop-blur-2xl border shadow-[0_8px_40px_rgba(0,0,0,0.2)]
@@ -257,7 +298,7 @@ export default function DashboardWindows() {
               className={`text-xl font-medium ${dark ? "text-white/90" : "text-black/90"
                 }`}
             >
-              Jobs
+              Projects
             </h3>
 
             <button
@@ -278,7 +319,7 @@ export default function DashboardWindows() {
               `}
             >
               <Plus size={16} />
-              {addingJob ? "Ajout..." : "Ajouter Job"}
+              {addingJob ? "Ajout..." : "Ajouter Project"}
             </button>
           </div>
 
@@ -307,7 +348,7 @@ export default function DashboardWindows() {
                         setShowJobInput(false);
                       }
                     }}
-                    placeholder="Nom du nouveau job..."
+                    placeholder="Nom du nouveau project..."
                     disabled={addingJob}
                     className={`
                       flex-1 bg-transparent outline-none px-2
@@ -340,7 +381,7 @@ export default function DashboardWindows() {
               </p>
             ) : jobs.length === 0 && !showJobInput ? (
               <p className={dark ? "text-white/60" : "text-black/60"}>
-                Aucun job trouvé.
+                Aucun project trouve.
               </p>
             ) : (
               jobs.map((job) => (
@@ -356,7 +397,7 @@ export default function DashboardWindows() {
                     `}
                   onClick={() =>
                     navigate(
-                      `/windows/company/${encodeURIComponent(name || "")}/crew-management?job=${job.id}`
+                      `/windows/company/${encodeURIComponent(name || "")}/project/${job.id}`
                     )
                   }
                 >
@@ -378,6 +419,7 @@ export default function DashboardWindows() {
             )}
           </div>
         </div>
+        )}
       </motion.main>
     </motion.div>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Download, FileSpreadsheet, Upload, Users } from "lucide-react";
 import * as XLSXStyle from "xlsx-js-style";
 import { saveAs } from "file-saver";
@@ -14,6 +14,8 @@ import { createStyledInvoiceWorkbook } from "../utils/invoiceWorkbook";
 export default function PayrollInvoices() {
   const { name } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const jobId = searchParams.get("job");
   const platform = window.location.pathname.startsWith("/mac") ? "mac" : "windows";
   const [dark, setDark] = useState(window.matchMedia("(prefers-color-scheme: dark)").matches);
   const [crewMembers, setCrewMembers] = useState<CrewMember[]>([]);
@@ -25,6 +27,7 @@ export default function PayrollInvoices() {
   const [invoicePrefix, setInvoicePrefix] = useState("INV");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [projectName, setProjectName] = useState<string | null>(null);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -37,11 +40,22 @@ export default function PayrollInvoices() {
     if (!name) return;
     setLoading(true);
     api.getCompanyByName(name)
-      .then((company) => api.getCrewMembers(company.id))
+      .then((company) => api.getCrewMembers(company.id, jobId || undefined))
       .then((members) => setCrewMembers((members || []) as CrewMember[]))
       .catch((cause) => setError(cause instanceof Error ? cause.message : "Impossible de charger les startforms."))
       .finally(() => setLoading(false));
-  }, [name]);
+  }, [jobId, name]);
+
+  useEffect(() => {
+    if (!jobId) {
+      setProjectName(null);
+      return;
+    }
+
+    api.getJobById(jobId)
+      .then((project) => setProjectName(project?.name || null))
+      .catch(() => setProjectName(null));
+  }, [jobId]);
 
   const memberById = useMemo(
     () => new Map(crewMembers.filter((member) => member.id).map((member) => [member.id as string, member])),
@@ -95,9 +109,10 @@ export default function PayrollInvoices() {
     }, assignments);
     const output = XLSXStyle.write(workbook, { bookType: "xlsx", type: "array" });
     const safeCompany = (name || "Company").replace(/[^a-z0-9]+/gi, "_");
+    const safeProject = projectName ? `_${projectName.replace(/[^a-z0-9]+/gi, "_")}` : "";
     saveAs(
       new Blob([output], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
-      `Invoices_${safeCompany}_${new Date().toISOString().slice(0, 10)}.xlsx`
+      `Invoices_${safeCompany}${safeProject}_${new Date().toISOString().slice(0, 10)}.xlsx`
     );
   };
 
@@ -117,7 +132,11 @@ export default function PayrollInvoices() {
     <main className={`min-h-screen p-8 ${dark ? "bg-[#050814] text-white" : "bg-[#e5ecff] text-black"}`}>
       <div className="mx-auto max-w-7xl">
         <button
-          onClick={() => navigate(`/${platform}/company/${encodeURIComponent(name || "")}`)}
+          onClick={() => navigate(
+            jobId
+              ? `/${platform}/company/${encodeURIComponent(name || "")}/project/${jobId}`
+              : `/${platform}/company/${encodeURIComponent(name || "")}`
+          )}
           className={`mb-6 flex items-center gap-2 rounded-xl border px-4 py-2 ${surface}`}
         >
           <ArrowLeft size={17} /> Retour au dashboard
@@ -126,6 +145,11 @@ export default function PayrollInvoices() {
         <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl font-semibold">Payroll vers Invoices</h1>
+            {jobId && (
+              <p className={`mt-2 font-medium ${muted}`}>
+                Project: {projectName || "Project"}
+              </p>
+            )}
             <p className={`mt-2 ${muted}`}>
               Importez le Payroll, vérifiez les startforms associés, puis générez les factures finales.
             </p>

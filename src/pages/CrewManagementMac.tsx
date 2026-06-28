@@ -438,7 +438,7 @@ export default function CrewManagementMac() {
       setGlobalSearch("");
       setGlobalResults([]);
       setHasGlobalSearched(false);
-      alert(jobId ? "Startform associe au job." : "Startform ajoute a la company.");
+      alert(jobId ? "Startform associe au project." : "Startform ajoute a la company.");
       setTimeout(() => globalSearchInputRef.current?.focus(), 50);
     } catch (err) {
       console.error("Erreur association startform:", err);
@@ -450,7 +450,7 @@ export default function CrewManagementMac() {
 
   const handleAssignSelectedToJob = async () => {
     if (!selectedJobId) {
-      alert("Selectionnez un job.");
+      alert("Selectionnez un project.");
       return;
     }
 
@@ -473,10 +473,10 @@ export default function CrewManagementMac() {
       );
       setSelectedIds(new Set());
       setSelectedJobId("");
-      alert("Crew member(s) integre(s) au job.");
+      alert("Crew member(s) integre(s) au project.");
     } catch (err) {
-      console.error("Erreur integration job:", err);
-      alert("Erreur lors de l'integration au job.");
+      console.error("Erreur integration project:", err);
+      alert("Erreur lors de l'integration au project.");
     } finally {
       setAssigningToJob(false);
     }
@@ -577,7 +577,7 @@ export default function CrewManagementMac() {
         className="flex-1 p-10 overflow-y-auto"
       >
         <h1 className="text-3xl font-semibold mb-8 text-black dark:text-white tracking-tight">
-          Crew Management — {jobId ? jobName || "Job" : "All Jobs"} <span className="text-sm opacity-50">({name})</span>
+          Crew Management — {jobId ? jobName || "Project" : "All Projects"} <span className="text-sm opacity-50">({name})</span>
         </h1>
 
         {/* ------------------ CREW LIST TAB ------------------ */}
@@ -708,7 +708,7 @@ export default function CrewManagementMac() {
                               {assigningId === m.id
                                 ? "Association..."
                                 : jobId
-                                  ? "Associer au job"
+                                  ? "Associer au project"
                                   : "Associer a la company"}
                             </button>
                           </td>
@@ -732,10 +732,10 @@ export default function CrewManagementMac() {
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
                     <p className="text-sm font-medium text-black dark:text-white">
-                      Integrer les crew members selectionnes dans un job
+                      Integrer les crew members selectionnes dans un project
                     </p>
                     <p className="text-xs text-black/55 dark:text-white/55">
-                      Selectionnez une ou plusieurs lignes dans All Jobs, puis choisissez le job.
+                      Selectionnez une ou plusieurs lignes dans All Projects, puis choisissez le project.
                     </p>
                   </div>
 
@@ -751,7 +751,7 @@ export default function CrewManagementMac() {
                       "
                     >
                       <option value="" className="text-black">
-                        {jobs.length === 0 ? "Aucun job disponible" : "Choisir un job"}
+                        {jobs.length === 0 ? "Aucun project disponible" : "Choisir un project"}
                       </option>
                       {jobs.map((job) => (
                         <option key={job.id} value={job.id} className="text-black">
@@ -970,7 +970,7 @@ export default function CrewManagementMac() {
               <p className="text-black/60 dark:text-white/60">Chargement des contrats...</p>
             ) : contracts.length === 0 ? (
               <p className="text-black/60 dark:text-white/60">
-                Aucun contrat genere pour les crew members de ce job.
+                Aucun contrat genere pour les crew members de ce project.
               </p>
             ) : (
               <div className="overflow-x-auto rounded-2xl border border-black/10 dark:border-white/10">

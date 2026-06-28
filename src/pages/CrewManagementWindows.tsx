@@ -449,7 +449,7 @@ export default function CrewManagementWindows() {
       setGlobalSearch("");
       setGlobalResults([]);
       setHasGlobalSearched(false);
-      alert(jobId ? "Starter form assigned to job." : "Starter form added to company.");
+      alert(jobId ? "Starter form assigned to project." : "Starter form added to company.");
       setTimeout(() => globalSearchInputRef.current?.focus(), 50);
     } catch (err) {
       console.error("Error assigning starter form:", err);
@@ -461,7 +461,7 @@ export default function CrewManagementWindows() {
 
   const handleAssignSelectedToJob = async () => {
     if (!selectedJobId) {
-      alert("Select a job.");
+      alert("Select a project.");
       return;
     }
 
@@ -484,10 +484,10 @@ export default function CrewManagementWindows() {
       );
       setSelectedIds(new Set());
       setSelectedJobId("");
-      alert("Crew member(s) assigned to job.");
+      alert("Crew member(s) assigned to project.");
     } catch (err) {
-      console.error("Error assigning to job:", err);
-      alert("Error while assigning to job.");
+      console.error("Error assigning to project:", err);
+      alert("Error while assigning to project.");
     } finally {
       setAssigningToJob(false);
     }
@@ -593,7 +593,7 @@ export default function CrewManagementWindows() {
           className={`text-3xl font-semibold mb-8 tracking-tight ${dark ? "text-white" : "text-black"
             }`}
         >
-          Crew Management — {jobId ? jobName || "Job" : "All Jobs"} <span className="text-sm opacity-50">({name})</span>
+          Crew Management — {jobId ? jobName || "Project" : "All Projects"} <span className="text-sm opacity-50">({name})</span>
         </h1>
 
         {/* ---------------- CREW LIST TAB ---------------- */}
@@ -737,7 +737,7 @@ export default function CrewManagementWindows() {
                               {assigningId === m.id
                                 ? "Assigning..."
                                 : jobId
-                                  ? "Assign to job"
+                                  ? "Assign to project"
                                   : "Assign to company"}
                             </button>
                           </td>
@@ -771,10 +771,10 @@ export default function CrewManagementWindows() {
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
                     <p className={dark ? "text-sm font-medium text-white" : "text-sm font-medium text-black"}>
-                      Assign selected crew members to a job
+                      Assign selected crew members to a project
                     </p>
                     <p className={dark ? "text-xs text-white/55" : "text-xs text-black/55"}>
-                      Select one or more rows in All Jobs, then choose the target job.
+                      Select one or more rows in All Projects, then choose the target project.
                     </p>
                   </div>
 
@@ -789,7 +789,7 @@ export default function CrewManagementWindows() {
                         }`}
                     >
                       <option value="" className="text-black">
-                        {jobs.length === 0 ? "No job available" : "Choose a job"}
+                        {jobs.length === 0 ? "No project available" : "Choose a project"}
                       </option>
                       {jobs.map((job) => (
                         <option key={job.id} value={job.id} className="text-black">
@@ -1019,7 +1019,7 @@ export default function CrewManagementWindows() {
               <p className={dark ? "text-white/70" : "text-black/70"}>Loading contracts...</p>
             ) : contracts.length === 0 ? (
               <p className={dark ? "text-white/70" : "text-black/70"}>
-                No generated contract for the crew members assigned to this job.
+                No generated contract for the crew members assigned to this project.
               </p>
             ) : (
               <div className={`overflow-x-auto rounded-xl border ${dark ? "border-white/15" : "border-black/10"}`}>

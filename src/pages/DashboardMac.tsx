@@ -6,11 +6,12 @@ import { supabase } from "../supabaseClient";
 import { api } from "../services/api";
 
 export default function DashboardMac() {
-  const { name } = useParams();
+  const { name, projectId } = useParams();
   const navigate = useNavigate();
 
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [jobs, setJobs] = useState<any[]>([]);
+  const [projectName, setProjectName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingCompany, setLoadingCompany] = useState(true);
   const [addingJob, setAddingJob] = useState(false);
@@ -86,6 +87,20 @@ export default function DashboardMac() {
     window.setTimeout(() => newJobInputRef.current?.focus(), 50);
   }, [showJobInput]);
 
+  useEffect(() => {
+    if (!projectId) {
+      setProjectName(null);
+      return;
+    }
+
+    api.getJobById(projectId)
+      .then((project) => setProjectName(project?.name || null))
+      .catch((error) => {
+        console.error("Error loading project:", error);
+        setProjectName(null);
+      });
+  }, [projectId]);
+
   /* ---------------- SAVE JOB ---------------- */
   async function saveJob() {
     if (!companyId) return alert("Company non chargee.");
@@ -103,8 +118,8 @@ export default function DashboardMac() {
       setNewJobName("");
       setShowJobInput(false);
     } catch (error) {
-      console.error("Erreur creation job:", error);
-      alert(error instanceof Error ? error.message : "Erreur creation job.");
+      console.error("Erreur creation project:", error);
+      alert(error instanceof Error ? error.message : "Erreur creation project.");
     } finally {
       setAddingJob(false);
     }
@@ -115,7 +130,7 @@ export default function DashboardMac() {
     e.stopPropagation();
     if (
       !confirm(
-        "Voulez-vous vraiment supprimer ce job ? Cette action est irréversible."
+        "Voulez-vous vraiment supprimer ce project ? Cette action est irreversible."
       )
     )
       return;
@@ -124,26 +139,34 @@ export default function DashboardMac() {
       await api.deleteJob(id);
       setJobs((prev) => prev.filter((j) => j.id !== id));
     } catch (err) {
-      console.error("Erreur suppression job:", err);
-      alert("Erreur lors de la suppression du job.");
+      console.error("Erreur suppression project:", err);
+      alert("Erreur lors de la suppression du project.");
     }
   };
 
+  const projectQuery = projectId ? `?job=${projectId}` : "";
   const sidebarItems = [
+    ...(projectId
+      ? [{
+          icon: <FileText size={18} />,
+          label: "Company Projects",
+          path: `/mac/company/${encodeURIComponent(name || "")}`,
+        }]
+      : []),
     {
       icon: <Users size={18} />,
       label: "Crew Management",
-      path: `/mac/company/${encodeURIComponent(name || "")}/crew-management`,
+      path: `/mac/company/${encodeURIComponent(name || "")}/crew-management${projectQuery}`,
     },
     {
       icon: <FileText size={18} />,
       label: "Contrat",
-      path: `/mac/company/${encodeURIComponent(name || "")}/contracts`,
+      path: `/mac/company/${encodeURIComponent(name || "")}/contracts${projectQuery}`,
     },
     {
       icon: <Wallet size={18} />,
       label: "Payroll",
-      path: `/mac/company/${encodeURIComponent(name || "")}/payroll`,
+      path: `/mac/company/${encodeURIComponent(name || "")}/payroll${projectQuery}`,
     },
   ];
 
@@ -252,9 +275,33 @@ export default function DashboardMac() {
         className={`flex-1 p-10 overflow-y-auto transition-colors ${dark ? "text-white" : "text-black"
           }`}
       >
-        <h1 className="text-3xl font-semibold mb-8">Dashboard</h1>
+        <h1 className="text-3xl font-semibold mb-8">
+          {projectId ? `Project Dashboard - ${projectName || "Project"}` : "Dashboard"}
+        </h1>
 
-        {/* ---------------- JOBS CARD ---------------- */}
+        {projectId ? (
+          <div className="grid gap-5 md:grid-cols-3">
+            {sidebarItems.slice(1).map((item) => (
+              <button
+                key={item.label}
+                onClick={() => navigate(item.path)}
+                className="rounded-[28px] border p-7 text-left shadow-[0_10px_45px_rgba(0,0,0,0.18)] transition hover:scale-[1.02]"
+                style={{
+                  background: dark ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.75)",
+                  borderColor: dark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)",
+                  backdropFilter: "blur(22px)",
+                  WebkitBackdropFilter: "blur(22px)",
+                }}
+              >
+                <div className="mb-5 text-blue-500">{item.icon}</div>
+                <h2 className="text-xl font-semibold">{item.label}</h2>
+                <p className={dark ? "mt-2 text-sm text-white/55" : "mt-2 text-sm text-black/55"}>
+                  Documents et donnees separes pour ce projet uniquement.
+                </p>
+              </button>
+            ))}
+          </div>
+        ) : (
         <div
           className="rounded-[28px] p-7 mb-10 border shadow-[0_10px_45px_rgba(0,0,0,0.18)]"
           style={{
@@ -268,7 +315,7 @@ export default function DashboardMac() {
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className={`text-xl font-semibold ${dark ? "text-white/90" : "text-black/90"}`}>
-              Jobs
+              Projects
             </h3>
 
             <button
@@ -298,7 +345,7 @@ export default function DashboardMac() {
               }}
             >
               <Plus size={16} />
-              {addingJob ? "Ajout..." : "Ajouter Job"}
+              {addingJob ? "Ajout..." : "Ajouter Project"}
             </button>
           </div>
 
@@ -334,7 +381,7 @@ export default function DashboardMac() {
                         setShowJobInput(false);
                       }
                     }}
-                    placeholder="Nom du nouveau job..."
+                    placeholder="Nom du nouveau project..."
                     disabled={addingJob}
                     className={`flex-1 bg-transparent outline-none px-2 ${dark ? "text-white placeholder-white/35" : "text-black placeholder-black/35"
                       }`}
@@ -374,7 +421,7 @@ export default function DashboardMac() {
             {loading ? (
               <p className={dark ? "text-white/55" : "text-black/55"}>Chargement...</p>
             ) : jobs.length === 0 && !showJobInput ? (
-              <p className={dark ? "text-white/55" : "text-black/55"}>Aucun job trouvé.</p>
+              <p className={dark ? "text-white/55" : "text-black/55"}>Aucun project trouve.</p>
             ) : (
               jobs.map((job) => (
                 <motion.div
@@ -396,7 +443,7 @@ export default function DashboardMac() {
                       : "0 10px 35px rgba(0,0,0,0.10)",
                   }}
                   onClick={() =>
-                    navigate(`/mac/company/${encodeURIComponent(name || "")}/crew-management?job=${job.id}`)
+                    navigate(`/mac/company/${encodeURIComponent(name || "")}/project/${job.id}`)
                   }
                 >
                   <div className="flex justify-between items-center">
@@ -422,6 +469,7 @@ export default function DashboardMac() {
             )}
           </div>
         </div>
+        )}
       </motion.main>
     </motion.div>
   );

@@ -30,6 +30,22 @@ interface SelectBankNameWindowsProps {
   dark: boolean;
 }
 
+interface SelectPaymentMethodWindowsProps {
+  value: string;
+  onChange: (value: string) => void;
+  dark: boolean;
+}
+
+type AllowanceKind = "living" | "perDiem";
+
+interface SelectAllowanceWindowsProps {
+  kind: AllowanceKind;
+  value: string;
+  onKindChange: (kind: AllowanceKind) => void;
+  onValueChange: (value: string) => void;
+  dark: boolean;
+}
+
 interface StaticSignatureWindowsProps {
   label: string;
   dark: boolean;
@@ -110,6 +126,7 @@ export default function NewStarterFormWindows() {
             ice: data.ice || "",
             ifNumber: data.if_number || "",
           });
+          setAllowanceKind(data.per_diem ? "perDiem" : "living");
           if (data.project_title) setProjectTitle(data.project_title);
         }
       } catch (e) {
@@ -153,6 +170,19 @@ export default function NewStarterFormWindows() {
   });
 
   const [projectTitle, setProjectTitle] = useState("");
+  const [allowanceKind, setAllowanceKind] = useState<AllowanceKind>("living");
+
+  useEffect(() => {
+    if (!jobId) return;
+
+    api.getJobById(jobId)
+      .then((project) => {
+        if (project?.name) setProjectTitle(project.name);
+      })
+      .catch((error) => {
+        console.error("Erreur chargement project:", error);
+      });
+  }, [jobId]);
 
   /* ---------------- HELPERS ---------------- */
   const clean = (v: any) => (v === "" ? null : v);
@@ -261,8 +291,8 @@ export default function NewStarterFormWindows() {
         holiday_worked: clean(formData.holidayWorked),
         travel_day: clean(formData.travelDay),
 
-        living_allowance: clean(formData.allowance),
-        per_diem: clean(formData.perDiem),
+        living_allowance: allowanceKind === "living" ? clean(formData.allowance) : null,
+        per_diem: allowanceKind === "perDiem" ? clean(formData.perDiem) : null,
         accommodation: formData.accommodation,
 
         payment_method: formData.payment,
@@ -331,6 +361,9 @@ export default function NewStarterFormWindows() {
     // CLEAN FIELDS
     // -----------------------------
 
+    const allowanceLabel = allowanceKind === "perDiem" ? "PER DIEM :" : "LIVING ALLOWANCE :";
+    const allowanceValue = allowanceKind === "perDiem" ? formData.perDiem : formData.allowance;
+
     const leftFieldsRaw: [string, string][] = [
       ["FIRST NAME :", formData.firstName],
       ["ID CARD NO :", formData.idCard],
@@ -341,7 +374,7 @@ export default function NewStarterFormWindows() {
       ["RATE :", formData.rate],
       ["7th DAY WORKED :", formData.dayWorked],
       ["TRAVEL DAY :", formData.travelDay],
-      ["LIVING ALLOWANCE :", formData.allowance],
+      [allowanceLabel, allowanceValue],
       ["ACCOMMODATION :", formData.accommodation],
       ["BANK NAME :", formData.bankName],
       ["ACCT CODE :", formData.acctCode],
@@ -359,7 +392,6 @@ export default function NewStarterFormWindows() {
       ["PER DAY/WEEK :", formData.perWeek],
       ["HOLIDAY WORKED :", formData.holidayWorked],
       ["DAILY RATE :", formData.dailyRate],
-      ["PER DIEM :", formData.perDiem],
       ["PAYMENT METHOD :", formData.payment],
       ["TRAVEL DATE :", formData.travelDate],
       ["IF :", formData.ifNumber],
@@ -544,6 +576,7 @@ export default function NewStarterFormWindows() {
             type="text"
             placeholder="Project title"
             value={projectTitle}
+            readOnly={Boolean(jobId)}
             onChange={(e) => setProjectTitle(e.target.value)}
             className={`
               mt-3 text-[18px] font-medium px-4 py-2 rounded-xl shadow-sm text-center
@@ -552,6 +585,7 @@ export default function NewStarterFormWindows() {
                 ? "bg-white/10 border-white/20 text-white placeholder-gray-400 focus:ring-blue-500/40"
                 : "bg-white border-gray-300 text-gray-700 placeholder-gray-400 focus:ring-blue-400/40"
               }
+              ${jobId ? "cursor-not-allowed opacity-80" : ""}
             `}
           />
         </div>
@@ -649,6 +683,37 @@ export default function NewStarterFormWindows() {
                   onChange={(v: any) => handleChange("bankName", v)}
                 />
               );
+            // PAYMENT METHOD (cash / wire)
+            if (key === "payment")
+              return (
+                <SelectPaymentMethodWindows
+                  key={key}
+                  dark={dark}
+                  value={formData.payment}
+                  onChange={(v) => handleChange("payment", v)}
+                />
+              );
+            if (key === "allowance")
+              return (
+                <SelectAllowanceWindows
+                  key={key}
+                  dark={dark}
+                  kind={allowanceKind}
+                  value={allowanceKind === "perDiem" ? formData.perDiem : formData.allowance}
+                  onKindChange={(kind) => {
+                    const currentValue = allowanceKind === "perDiem" ? formData.perDiem : formData.allowance;
+                    setAllowanceKind(kind);
+                    setFormData((prev) => ({
+                      ...prev,
+                      allowance: kind === "living" ? currentValue : "",
+                      perDiem: kind === "perDiem" ? currentValue : "",
+                    }));
+                  }}
+                  onValueChange={(value) => handleChange(allowanceKind === "perDiem" ? "perDiem" : "allowance", value)}
+                />
+              );
+            if (key === "perDiem")
+              return null;
             // IF (digits only, max 15)
             if (key === "ifNumber")
               return (
@@ -832,6 +897,84 @@ function SelectPerDayWeekWindows({ value, onChange, dark }: SelectPerDayWeekWind
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+/* ---------------- SELECT PAYMENT METHOD WINDOWS ---------------- */
+function SelectPaymentMethodWindows({ value, onChange, dark }: SelectPaymentMethodWindowsProps) {
+  return (
+    <div className="flex flex-col">
+      <label
+        className={`font-semibold mb-1 text-xs ${dark ? "text-gray-200" : "text-gray-800"
+          }`}
+      >
+        PAYMENT METHOD
+      </label>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className={`
+          px-3 py-2 rounded-lg border text-sm transition focus:ring-2 focus:outline-none
+          ${dark
+            ? "bg-white/10 border-white/20 text-white focus:ring-blue-500/50"
+            : "bg-white border-gray-300 text-gray-800 focus:ring-blue-400"
+          }
+        `}
+      >
+        <option value="" className="text-black">Select payment method</option>
+        <option value="Cash" className="text-black">Cash</option>
+        <option value="Wire" className="text-black">Wire</option>
+      </select>
+    </div>
+  );
+}
+
+/* ---------------- SELECT ALLOWANCE WINDOWS ---------------- */
+function SelectAllowanceWindows({
+  kind,
+  value,
+  onKindChange,
+  onValueChange,
+  dark,
+}: SelectAllowanceWindowsProps) {
+  return (
+    <div className="flex flex-col">
+      <label
+        className={`font-semibold mb-1 text-xs ${dark ? "text-gray-200" : "text-gray-800"
+          }`}
+      >
+        ALLOWANCE / PER DIEM
+      </label>
+      <div className="grid grid-cols-[180px_1fr] gap-2">
+        <select
+          value={kind}
+          onChange={(event) => onKindChange(event.target.value as AllowanceKind)}
+          className={`
+            px-3 py-2 rounded-lg border text-sm transition focus:ring-2 focus:outline-none
+            ${dark
+              ? "bg-white/10 border-white/20 text-white focus:ring-blue-500/50"
+              : "bg-white border-gray-300 text-gray-800 focus:ring-blue-400"
+            }
+          `}
+        >
+          <option value="living" className="text-black">Living Allowance</option>
+          <option value="perDiem" className="text-black">Per Diem</option>
+        </select>
+        <input
+          type="text"
+          value={value}
+          onChange={(event) => onValueChange(event.target.value)}
+          placeholder={kind === "perDiem" ? "Enter per diem" : "Enter living allowance"}
+          className={`
+            px-3 py-2 rounded-lg border text-sm transition focus:ring-2 focus:outline-none
+            ${dark
+              ? "bg-white/10 border-white/20 text-white placeholder-gray-400 focus:ring-blue-500/50"
+              : "bg-white border-gray-300 text-gray-800 placeholder-gray-400 focus:ring-blue-400"
+            }
+          `}
+        />
+      </div>
     </div>
   );
 }
