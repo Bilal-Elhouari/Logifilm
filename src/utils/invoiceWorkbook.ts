@@ -47,7 +47,7 @@ const safeSheetName = (name: string, used: Set<string>) => {
 };
 
 const fallbackLine = (position: string | null, amount: number | null): PayrollLine => ({
-  description: `Prestation de service en tant que ${position || ""}`.trim(),
+  description: `Services as ${position || ""}`.trim(),
   from: null,
   to: null,
   quantity: null,
@@ -59,7 +59,7 @@ const fallbackLine = (position: string | null, amount: number | null): PayrollLi
 export function createStyledInvoiceWorkbook(issuer: InvoiceClient, assignments: InvoiceAssignment[]) {
   const workbook = XLSXStyle.utils.book_new();
   const usedSheetNames = new Set<string>();
-  const invoiceDate = new Date().toLocaleDateString("fr-FR");
+  const invoiceDate = new Date().toLocaleDateString("en-GB");
   const invoicePrefix = (issuer.invoicePrefix || "INV").replace(/[^a-z0-9-]+/gi, "").toUpperCase() || "INV";
 
   assignments.forEach(({ payroll, member }, index) => {
@@ -69,35 +69,35 @@ export function createStyledInvoiceWorkbook(issuer: InvoiceClient, assignments: 
     const total = payroll.payrollTotal ?? details.reduce((sum, line) => sum + (line.amount || 0), 0);
 
     const rows: unknown[][] = [
-      ["FACTURE"],
+      ["INVOICE"],
       [],
-      ["ÉMETTEUR", null, "INFORMATIONS FACTURE"],
-      ["Nom", issuer.name.toUpperCase(), "Date", invoiceDate],
-      ["ICE", issuer.ice || "", "N° facture", invoiceNumber],
-      ["Adresse", issuer.address || "", "Compte analytique", payroll.accountCode],
+      ["ISSUER", null, "INVOICE DETAILS"],
+      ["Name", issuer.name.toUpperCase(), "Date", invoiceDate],
+      ["ICE", issuer.ice || "", "Invoice no.", invoiceNumber],
+      ["Address", issuer.address || "", "Cost account", payroll.accountCode],
       [],
       [],
-      ["CLIENT / STARTFORM"],
-      ["Nom", fullName.toUpperCase()],
-      ["Fonction", payroll.position],
-      ["Adresse", member.address || ""],
-      ["Ville", [member.zip_code, member.city].filter(Boolean).join(" ")],
-      ["PATENTE", member.patent_number || ""],
+      ["CLIENT / STARTER FORM"],
+      ["Name", fullName.toUpperCase()],
+      ["Position", payroll.position],
+      ["Address", member.address || ""],
+      ["City", [member.zip_code, member.city].filter(Boolean).join(" ")],
+      ["PATENT", member.patent_number || ""],
       ["ICE", member.ice || ""],
       ["IF", member.if_number || ""],
       [],
-      ["DÉTAIL DES PRESTATIONS"],
-      ["DESCRIPTION", "PÉRIODE", "QTÉ / TAUX", "MONTANT MAD"],
+      ["SERVICES"],
+      ["DESCRIPTION", "PERIOD", "QTY / RATE", "AMOUNT MAD"],
     ];
 
     const detailsHeaderRow = rows.length;
     details.forEach((line) => {
       rows.push([
         line.description,
-        [line.from, line.to].filter(Boolean).join(" au "),
+        [line.from, line.to].filter(Boolean).join(" to "),
         [
           line.quantity !== null ? `${line.quantity} ${line.unit || ""}`.trim() : "",
-          line.rate !== null ? `x ${line.rate.toLocaleString("fr-FR")}` : "",
+          line.rate !== null ? `x ${line.rate.toLocaleString("en-US")}` : "",
         ].filter(Boolean).join(" "),
         line.amount ?? "",
       ]);
@@ -106,15 +106,15 @@ export function createStyledInvoiceWorkbook(issuer: InvoiceClient, assignments: 
 
     rows.push(
       [],
-      [null, null, "TOTAL À PAYER", total],
+      [null, null, "TOTAL DUE", total],
       [],
-      ["DÉTAILS BANCAIRES"],
-      ["Intitulé du compte", fullName],
-      ["Nom de la banque", member.bank_name || ""],
-      ["Mode de paiement", member.payment_method || ""],
-      ["N° de compte", member.bank_account_number || ""],
+      ["BANK DETAILS"],
+      ["Account holder", fullName],
+      ["Bank name", member.bank_name || ""],
+      ["Payment method", member.payment_method || ""],
+      ["Account no.", member.bank_account_number || ""],
       [],
-      ["Merci pour votre collaboration."],
+      ["Thank you for your collaboration."],
     );
 
     const totalRow = detailsEndRow + 1;

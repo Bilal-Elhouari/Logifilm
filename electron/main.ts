@@ -7,6 +7,8 @@ import path from "path";
 const isClientMode = process.env.LOGIFILM_CLIENT_MODE === "1";
 const isDev = !app.isPackaged && !isClientMode;
 let mainWindow: BrowserWindow | null = null;
+const TITLE_BAR_HEIGHT = 40;
+const COLOR_PATTERN = /^#[0-9a-f]{6}([0-9a-f]{2})?$/i;
 
 type UpdateStatus = {
   state: "idle" | "checking" | "available" | "not-available" | "downloading" | "downloaded" | "manual-download" | "error" | "disabled";
@@ -60,7 +62,7 @@ async function checkForMacManualUpdate() {
   if (response.status === 404) {
     sendUpdateStatus({
       state: "not-available",
-      message: "Aucune mise a jour publiee pour le moment.",
+      message: "No update published yet.",
     });
     return;
   }
@@ -82,7 +84,7 @@ async function checkForMacManualUpdate() {
   if (!dmg) {
     sendUpdateStatus({
       state: "error",
-      message: `La version ${version} ne contient pas de fichier compatible avec ce Mac (${architecture}).`,
+      message: `Version ${version} has no file compatible with this Mac (${architecture}).`,
     });
     return;
   }
@@ -92,7 +94,7 @@ async function checkForMacManualUpdate() {
   sendUpdateStatus({
     state: "available",
     version,
-    message: "Une nouvelle version macOS est disponible. Son installation sera manuelle.",
+    message: "A new macOS version is available. It must be installed manually.",
   });
 }
 
@@ -107,14 +109,14 @@ function sendFriendlyUpdateError(error: unknown) {
   if (noPublishedRelease) {
     sendUpdateStatus({
       state: "not-available",
-      message: "Aucune mise a jour publiee pour le moment.",
+      message: "No update published yet.",
     });
     return;
   }
 
   sendUpdateStatus({
     state: "error",
-    message: "Verification impossible. Controlez votre connexion puis reessayez.",
+    message: "Unable to check for updates. Check your connection and try again.",
   });
 }
 
@@ -163,7 +165,12 @@ function createWindow() {
     height: 800,
 
     transparent: false,
-    titleBarStyle: "default",
+    // Frameless look: the app draws its own title bar (gradient on Windows style).
+    // macOS keeps its traffic lights; Windows/Linux keep native buttons via the overlay.
+    titleBarStyle: "hidden",
+    ...(process.platform === "darwin"
+      ? { trafficLightPosition: { x: 14, y: 13 } }
+      : { titleBarOverlay: { color: "#a21caf", symbolColor: "#ffffff", height: TITLE_BAR_HEIGHT } }),
     autoHideMenuBar: true,
     backgroundColor: "#1a1a1a",
     icon: (() => {
@@ -239,7 +246,7 @@ app.whenReady().then(() => {
 
   ipcMain.handle("check-for-updates", async () => {
     if (!app.isPackaged) {
-      sendUpdateStatus({ state: "disabled", message: "La verification est disponible dans l'application installee." });
+      sendUpdateStatus({ state: "disabled", message: "Update checks are available in the installed app." });
       return { ok: false };
     }
     try {
@@ -266,7 +273,7 @@ app.whenReady().then(() => {
         sendUpdateStatus({
           state: "manual-download",
           version: macUpdateVersion ?? undefined,
-          message: "Le DMG est en cours de telechargement. Ouvrez-le, puis remplacez Logifilm dans Applications.",
+          message: "The DMG is downloading. Open it, then replace Logifilm in Applications.",
         });
         return { ok: true };
       }
@@ -275,7 +282,7 @@ app.whenReady().then(() => {
     } catch {
       sendUpdateStatus({
         state: "error",
-        message: "Telechargement impossible. Controlez votre connexion puis reessayez.",
+        message: "Download failed. Check your connection and try again.",
       });
       return { ok: false };
     }
@@ -290,6 +297,16 @@ app.whenReady().then(() => {
   ipcMain.handle("open-downloads", async () => {
     const result = await shell.openPath(app.getPath("downloads"));
     return { ok: result === "", message: result || undefined };
+  });
+
+  // The renderer matches the native window buttons to the current style and theme.
+  ipcMain.on("title-bar-colors", (event, colors: { color?: unknown; symbolColor?: unknown }) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win || process.platform === "darwin") return;
+    const color = typeof colors?.color === "string" && COLOR_PATTERN.test(colors.color) ? colors.color : null;
+    const symbolColor = typeof colors?.symbolColor === "string" && COLOR_PATTERN.test(colors.symbolColor) ? colors.symbolColor : null;
+    if (!color || !symbolColor) return;
+    win.setTitleBarOverlay({ color, symbolColor, height: TITLE_BAR_HEIGHT });
   });
 
   ipcMain.handle("open-releases", async () => {
