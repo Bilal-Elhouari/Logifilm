@@ -120,7 +120,7 @@ export const api = {
             .maybeSingle();
 
         if (error) throw error;
-        if (!data) throw new Error(`Company introuvable: ${name}`);
+        if (!data) throw new Error(`Company not found: ${name}`);
         return data;
     },
 
@@ -142,7 +142,7 @@ export const api = {
      */
     createCompany: async (name: string) => {
         const normalizedName = name.trim();
-        if (!normalizedName) throw new Error("Le nom de la compagnie est obligatoire.");
+        if (!normalizedName) throw new Error("Company name is required.");
 
         const { data: existing, error: existingError } = await supabase
             .from("companies")
@@ -152,7 +152,7 @@ export const api = {
             .maybeSingle();
 
         if (existingError) throw existingError;
-        if (existing) throw new Error("Une compagnie avec ce nom existe deja.");
+        if (existing) throw new Error("A company with this name already exists.");
 
         const { data, error } = await supabase
             .from("companies")
@@ -169,7 +169,7 @@ export const api = {
      */
     createJob: async (name: string, companyId: string) => {
         const normalizedName = name.trim();
-        if (!normalizedName) throw new Error("Le nom du job est obligatoire.");
+        if (!normalizedName) throw new Error("Project name is required.");
 
         const { data: existing, error: existingError } = await supabase
             .from("jobs")
@@ -180,7 +180,7 @@ export const api = {
             .maybeSingle();
 
         if (existingError) throw existingError;
-        if (existing) throw new Error("Un job avec ce nom existe deja dans cette compagnie.");
+        if (existing) throw new Error("A project with this name already exists in this company.");
 
         const { data, error } = await supabase
             .from("jobs")
