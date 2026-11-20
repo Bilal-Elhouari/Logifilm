@@ -32,7 +32,8 @@ jobs:
       # WINDOWS
       - name: Build for Windows
         if: matrix.os == 'windows-latest'
-        run: npm run build:win
+        # Build only: publishing is done by release.yml on version tags.
+        run: npm run build:win -- --publish never
         env:
           NODE_ENV: production
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -40,7 +41,8 @@ jobs:
       # MAC
       - name: Build for Mac
         if: matrix.os == 'macos-latest'
-        run: npm run build:mac
+        # Build only: publishing is done by release.yml on version tags.
+        run: npm run build:mac -- --publish never
         env:
           NODE_ENV: production
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
