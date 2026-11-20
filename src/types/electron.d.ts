@@ -23,6 +23,8 @@ declare global {
             openDownloads: () => Promise<{ ok: boolean; message?: string }>;
             openReleases: () => Promise<void>;
             onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
+            /** Windows/Linux: colours of the native window buttons drawn over the custom title bar. */
+            setTitleBarColors?: (colors: { color: string; symbolColor: string }) => void;
         };
     }
 }

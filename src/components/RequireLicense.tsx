@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { KeyRound, LoaderCircle, LockKeyhole, LogOut, ShieldCheck } from "lucide-react";
 import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "../supabaseClient";
+import { GlassFrame, Tile } from "./glass/Glass";
 import {
   activateLicense,
   checkLicense,
@@ -9,13 +10,13 @@ import {
 } from "../services/license";
 
 const reasonMessages: Record<string, string> = {
-  invalid_key: "Cette cle de licence est incorrecte.",
-  expired: "Cette licence a expire.",
-  account_limit: "Cette licence a atteint sa limite de comptes.",
-  suspended: "Cette licence est suspendue.",
-  revoked: "Cette licence a ete revoquee.",
-  not_activated: "Ce compte doit etre active.",
-  authentication_required: "Connectez-vous avant d'activer la licence.",
+  invalid_key: "This licence key is invalid.",
+  expired: "This licence has expired.",
+  account_limit: "This licence has reached its account limit.",
+  suspended: "This licence is suspended.",
+  revoked: "This licence has been revoked.",
+  not_activated: "This account needs to be activated.",
+  authentication_required: "Sign in before activating the licence.",
 };
 
 export default function RequireLicense({ children }: { children: ReactNode }) {
@@ -45,7 +46,7 @@ export default function RequireLicense({ children }: { children: ReactNode }) {
           setMessage(reasonMessages[currentStatus.reason ?? ""] ?? "");
         }
       } catch {
-        if (active) setMessage("Le service de licence est indisponible. Verifiez Supabase.");
+        if (active) setMessage("The licence service is unavailable. Check your connection.");
       } finally {
         if (active) setBusy(false);
       }
@@ -83,10 +84,10 @@ export default function RequireLicense({ children }: { children: ReactNode }) {
       setStatus(result);
       setKey("");
       if (!result.valid) {
-        setMessage(reasonMessages[result.reason ?? ""] ?? "Activation refusee.");
+        setMessage(reasonMessages[result.reason ?? ""] ?? "Activation refused.");
       }
     } catch {
-      setMessage("Activation impossible. Verifiez la configuration Supabase.");
+      setMessage("Activation failed. Check your connection.");
     } finally {
       setBusy(false);
     }
@@ -101,71 +102,61 @@ export default function RequireLicense({ children }: { children: ReactNode }) {
     return <Navigate to={isMac ? "/mac/auth" : "/windows/auth"} replace />;
   }
 
+  const os = isMac ? "mac" : "win";
+
   if (busy && !status) {
     return (
-      <div className={`grid h-screen place-items-center ${isMac ? "bg-[#111217]" : "bg-[#080d18]"}`}>
-        <LoaderCircle className="animate-spin text-white/70" size={30} />
-      </div>
+      <GlassFrame os={os} centered>
+        <div className="lf-start" aria-busy="true">
+          <LoaderCircle className="animate-spin" size={30} style={{ color: "var(--ink-3)" }} />
+          <p>Checking licence…</p>
+        </div>
+      </GlassFrame>
     );
   }
 
   if (status?.valid) return <>{children}</>;
 
-  const cardClass = isMac
-    ? "rounded-3xl border border-white/20 bg-white/10 backdrop-blur-3xl"
-    : "rounded-md border border-white/15 bg-[#20252f]";
-  const inputClass = isMac ? "rounded-xl bg-white/10" : "rounded-sm bg-[#151a23]";
-  const buttonClass = isMac ? "rounded-full bg-[#007aff]" : "rounded-sm bg-[#0067c0]";
-
   return (
-    <div
-      className={`grid min-h-screen place-items-center p-6 text-white ${isMac ? "bg-[linear-gradient(180deg,#191b22,#0d0e12)]" : "bg-[#080d18]"}`}
-      style={{ fontFamily: isMac ? "'SF Pro Display', -apple-system, system-ui" : "'Segoe UI', system-ui" }}
-    >
-      <section className={`w-full max-w-md p-7 shadow-2xl ${cardClass}`}>
-        <div className={`mb-5 grid h-12 w-12 place-items-center ${isMac ? "rounded-2xl bg-white/15" : "rounded-sm bg-[#0067c0]/25"}`}>
-          <LockKeyhole size={24} />
-        </div>
-        <h1 className="text-xl font-semibold">Activer Logifilm</h1>
-        <p className="mt-2 text-sm leading-6 text-white/60">
-          Entrez la cle fournie avec votre licence. Cette activation sera liee a votre compte et fonctionnera sur tous vos ordinateurs.
-        </p>
+    <GlassFrame os={os} centered>
+      <div className="lf-start">
+        <section className="lf-auth-card" style={{ textAlign: "left" }}>
+          <Tile color="violet"><LockKeyhole /></Tile>
+          <h2>Activate Logifilm</h2>
+          <p className="lf-muted" style={{ margin: "6px 0 18px", lineHeight: 1.5 }}>
+            Enter the key provided with your licence. It will be linked to your account and work on all your computers.
+          </p>
 
-        <form onSubmit={submit} className="mt-6 space-y-3">
-          <label className="block text-xs font-semibold uppercase text-white/50">Cle de licence</label>
-          <div className="relative">
-            <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={17} />
-            <input
-              value={key}
-              onChange={(event) => setKey(event.target.value.toUpperCase())}
-              placeholder="LOGIFILM-CLIENT-XXXX-XXXX"
-              autoComplete="off"
-              spellCheck={false}
-              className={`h-11 w-full border border-white/15 pl-10 pr-3 text-sm uppercase outline-none focus:border-blue-400 ${inputClass}`}
-            />
-          </div>
+          <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <label className="lf-label">
+              <span>Licence key</span>
+              <span className="lf-field" style={{ display: "block" }}>
+                <KeyRound />
+                <input
+                  className="lf-input"
+                  value={key}
+                  onChange={(event) => setKey(event.target.value.toUpperCase())}
+                  placeholder="LOGIFILM-XXXXXXXX-XXXXXXXX"
+                  autoComplete="off"
+                  spellCheck={false}
+                  style={{ textTransform: "uppercase", fontFamily: "ui-monospace, monospace" }}
+                />
+              </span>
+            </label>
 
-          {message && <p className="text-sm text-red-300">{message}</p>}
+            {message && <div className="lf-alert" role="alert">{message}</div>}
 
-          <button
-            type="submit"
-            disabled={busy || !key.trim()}
-            className={`flex h-11 w-full items-center justify-center gap-2 text-sm font-semibold disabled:opacity-50 ${buttonClass}`}
-          >
-            {busy ? <LoaderCircle className="animate-spin" size={17} /> : <ShieldCheck size={17} />}
-            Activer ce compte
+            <button type="submit" className="lf-btn lf-btn-primary" disabled={busy || !key.trim()} style={{ padding: "11px 16px", fontSize: 14 }}>
+              {busy ? <LoaderCircle className="animate-spin" /> : <ShieldCheck />}
+              Activate this account
+            </button>
+          </form>
+
+          <button type="button" className="lf-btn lf-btn-ghost lf-btn-sm" onClick={signOut} style={{ marginTop: 16 }}>
+            <LogOut /> Use another account
           </button>
-        </form>
-
-        <button
-          type="button"
-          onClick={signOut}
-          className="mt-5 flex items-center gap-2 text-xs text-white/45 hover:text-white/75"
-        >
-          <LogOut size={14} />
-          Utiliser un autre compte
-        </button>
-      </section>
-    </div>
+        </section>
+      </div>
+    </GlassFrame>
   );
 }

@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Download, FileText, Search } from "lucide-react";
-import { motion } from "framer-motion";
 import { saveAs } from "file-saver";
 import { api, ContractRecord, CrewMember } from "../services/api";
 import { createContractPdf } from "../utils/contractPdf";
+import ContractsView from "../components/contracts/ContractsView";
 
 export default function ContractsMac() {
   const { name } = useParams();
@@ -141,7 +140,7 @@ export default function ContractsMac() {
         const message = saveError instanceof Error
           ? saveError.message
           : String((saveError as { message?: string })?.message || saveError);
-        alert(`PDF telecharge, mais sauvegarde impossible.\n\nErreur Supabase: ${message}\n\nExecutez supabase_contracts_schema.sql dans le SQL Editor Supabase.`);
+        alert(`PDF downloaded, but saving failed.\n\nSupabase error: ${message}\n\nRun supabase_contracts_schema.sql in the Supabase SQL Editor.`);
       }
     } finally {
       setGeneratingId(null);
@@ -154,118 +153,30 @@ export default function ContractsMac() {
       saveAs(blob, contract.contract_name);
     } catch (err) {
       console.error("Contract download error:", err);
-      alert("Impossible de telecharger ce contrat.");
+      alert("Unable to download this contract.");
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="min-h-screen w-full bg-[linear-gradient(180deg,#f6f7ff,#e8ecff)] p-10 text-black dark:bg-[linear-gradient(180deg,#1a1b1f,#0f1014)] dark:text-white"
-      style={{ fontFamily: "'SF Pro Display', system-ui" }}
-    >
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold">Contrats</h1>
-          <p className="text-sm text-black/55 dark:text-white/55">
-            {jobId ? `${name} / ${projectName || "Project"}` : name}
-          </p>
-        </div>
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 rounded-2xl border border-white/20 bg-white/50 px-4 py-2 text-sm text-red-500 shadow dark:bg-white/10"
-        >
-          <ArrowLeft size={16} />
-          Retour
-        </button>
-      </div>
-
-      <section className="mb-8 rounded-3xl border border-white/30 bg-white/60 p-6 shadow dark:border-white/10 dark:bg-white/10">
-        <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold">
-          <Search size={18} />
-          Rechercher un membre
-        </h2>
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Nom, prenom, ID card, poste..."
-          className="mb-4 w-full rounded-2xl border border-black/10 bg-white/80 px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-white/10 dark:text-white"
-        />
-
-        {loading || searching ? (
-          <p className="text-sm opacity-60">Chargement...</p>
-        ) : filteredMembers.length === 0 ? (
-          <p className="text-sm opacity-60">Aucun membre trouve.</p>
-        ) : (
-          <div className="overflow-x-auto rounded-2xl border border-black/10 dark:border-white/10">
-            <table className="w-full text-sm">
-              <thead className="text-left text-black/60 dark:text-white/60">
-                <tr>
-                  <th className="px-4 py-3">First Name</th>
-                  <th className="px-4 py-3">Last Name</th>
-                  <th className="px-4 py-3">ID Card</th>
-                  <th className="px-4 py-3">Position</th>
-                  <th className="px-4 py-3 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredMembers.map((member) => (
-                  <tr key={member.id} className="border-t border-black/10 dark:border-white/10">
-                    <td className="px-4 py-3">{member.first_name}</td>
-                    <td className="px-4 py-3">{member.last_name}</td>
-                    <td className="px-4 py-3">{member.id_card_number}</td>
-                    <td className="px-4 py-3">{member.position}</td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => handleGenerate(member)}
-                        disabled={generatingId === member.id}
-                        className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-3 py-2 text-xs font-medium text-white hover:bg-blue-600 disabled:opacity-60"
-                      >
-                        <FileText size={14} />
-                        {generatingId === member.id ? "Generation..." : "Generer le contrat"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section className="rounded-3xl border border-white/30 bg-white/60 p-6 shadow dark:border-white/10 dark:bg-white/10">
-        <h2 className="mb-4 text-xl font-semibold">Crew Contract</h2>
-        {contracts.length === 0 ? (
-          <p className="text-sm opacity-60">Aucun contrat genere.</p>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {contracts.map((contract) => {
-              const member = memberById.get(contract.crew_member_id);
-              const fullName = `${member?.first_name || ""} ${member?.last_name || ""}`.trim();
-
-              return (
-                <div
-                  key={contract.id}
-                  className="flex items-center justify-between gap-4 rounded-2xl border border-black/10 bg-white/60 px-4 py-3 dark:border-white/10 dark:bg-white/5"
-                >
-                  <div>
-                    <p className="font-medium">{contract.contract_name}</p>
-                    <p className="text-xs opacity-60">{fullName || contract.crew_member_id}</p>
-                  </div>
-                  <button
-                    onClick={() => handleDownloadContract(contract)}
-                    className="flex items-center gap-2 rounded-xl bg-green-500 px-3 py-2 text-xs font-medium text-white hover:bg-green-600"
-                  >
-                    <Download size={14} />
-                    Telecharger
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
-    </motion.div>
+    <ContractsView
+      os="mac"
+      vm={{
+        companyName: name || "",
+        jobId,
+        projectName,
+        query,
+        setQuery,
+        loading,
+        searching,
+        members: filteredMembers,
+        totalMembers: companyMembers.length,
+        contracts,
+        memberById,
+        generatingId,
+        onGenerate: handleGenerate,
+        onDownload: handleDownloadContract,
+        onBack: () => navigate(-1),
+      }}
+    />
   );
 }

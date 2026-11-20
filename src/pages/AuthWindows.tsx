@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { supabase } from "../supabaseClient";
+import AuthView from "../components/auth/AuthView";
 
 export default function AuthWindows({
     onLoginSuccess,
@@ -30,7 +30,7 @@ export default function AuthWindows({
 
         if (error) {
             console.error("LOGIN ERROR:", error);
-            setErrorMsg("Email ou mot de passe incorrect.");
+            setErrorMsg("Incorrect email or password.");
             return;
         }
 
@@ -82,7 +82,7 @@ export default function AuthWindows({
 
         if (!sessionData.session) {
             setLoading(false);
-            setErrorMsg("Compte créé ! Veuillez vérifier vos emails pour confirmer.");
+            setErrorMsg("Account created! Check your email to confirm it.");
             return;
         }
 
@@ -91,109 +91,9 @@ export default function AuthWindows({
     }
 
     return (
-        <div
-            className="h-screen w-full flex items-center justify-center bg-gradient-to-br from-[#0c1a2c] to-[#1c2c4d]"
-            style={{
-                fontFamily: "'Segoe UI', sans-serif",
-            }}
-        >
-            {/* Windows acrylic-like card */}
-            <div
-                className="w-[420px] rounded-2xl p-8 shadow-xl border border-white/10"
-                style={{
-                    background: "rgba(255,255,255,0.10)",
-                    backdropFilter: "blur(20px)",
-                }}
-            >
-                {/* Tabs */}
-                <div className="flex justify-center mb-8">
-                    <div className="flex bg-white/10 rounded-full p-1">
-                        <button
-                            onClick={() => setMode("login")}
-                            className={`px-6 py-2 rounded-full transition ${mode === "login"
-                                ? "bg-white/30 text-white"
-                                : "text-white/60"
-                                }`}
-                        >
-                            Connexion
-                        </button>
-                        <button
-                            onClick={() => setMode("signup")}
-                            className={`px-6 py-2 rounded-full transition ${mode === "signup"
-                                ? "bg-white/30 text-white"
-                                : "text-white/60"
-                                }`}
-                        >
-                            Créer un compte
-                        </button>
-                    </div>
-                </div>
-
-                {/* Error message */}
-                {errorMsg && (
-                    <p className="text-red-400 text-center mb-4">{errorMsg}</p>
-                )}
-
-                {/* LOGIN FORM */}
-                {mode === "login" && (
-                    <form onSubmit={handleLogin} className="flex flex-col gap-4">
-                        <input
-                            type="email"
-                            placeholder="Adresse email"
-                            className="w-full px-4 py-3 rounded-xl bg-white/20 text-white placeholder-white/60 border border-white/20 outline-none"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                        />
-
-                        <input
-                            type="password"
-                            placeholder="Mot de passe"
-                            className="w-full px-4 py-3 rounded-xl bg-white/20 text-white placeholder-white/60 border border-white/20 outline-none"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                        />
-
-                        <motion.button
-                            whileTap={{ scale: 0.97 }}
-                            className="mt-2 w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl shadow-md"
-                        >
-                            {loading ? "Connexion..." : "Se connecter"}
-                        </motion.button>
-                    </form>
-                )}
-
-                {/* SIGNUP FORM */}
-                {mode === "signup" && (
-                    <form onSubmit={handleSignup} className="flex flex-col gap-4">
-                        <input
-                            type="email"
-                            placeholder="Adresse email"
-                            className="w-full px-4 py-3 rounded-xl bg-white/20 text-white placeholder-white/60 border border-white/20 outline-none"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                        />
-
-                        <input
-                            type="password"
-                            placeholder="Mot de passe"
-                            className="w-full px-4 py-3 rounded-xl bg-white/20 text-white placeholder-white/60 border border-white/20 outline-none"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                        />
-
-                        <motion.button
-                            whileTap={{ scale: 0.97 }}
-                            className="mt-2 w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl shadow-md"
-                        >
-                            {loading ? "Création..." : "S'inscrire"}
-                        </motion.button>
-                    </form>
-                )}
-            </div>
-        </div>
+      <AuthView
+        os="win"
+        vm={{ mode, setMode, email, setEmail, password, setPassword, loading, errorMsg, onLogin: handleLogin, onSignup: handleSignup }}
+      />
     );
 }

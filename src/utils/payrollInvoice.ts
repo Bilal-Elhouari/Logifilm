@@ -44,7 +44,7 @@ const asNumber = (value: unknown) => {
 
 const excelDateToText = (value: unknown) => {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value.toLocaleDateString("fr-FR");
+    return value.toLocaleDateString("en-GB");
   }
 
   const serial = asNumber(value);
@@ -64,7 +64,7 @@ const isMemberRow = (row: unknown[]) =>
 export function parsePayrollWorkbook(buffer: ArrayBuffer): PayrollMember[] {
   const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  if (!sheet) throw new Error("Le fichier Payroll ne contient aucune feuille.");
+  if (!sheet) throw new Error("The payroll file has no sheet.");
 
   const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
     header: 1,
@@ -169,7 +169,7 @@ const safeSheetName = (name: string, used: Set<string>) => {
 export function createInvoiceWorkbook(client: InvoiceClient, assignments: InvoiceAssignment[]) {
   const workbook = XLSX.utils.book_new();
   const usedSheetNames = new Set<string>();
-  const invoiceDate = new Date().toLocaleDateString("fr-FR");
+  const invoiceDate = new Date().toLocaleDateString("en-GB");
   const invoicePrefix = (client.invoicePrefix || "INV").replace(/[^a-z0-9-]+/gi, "").toUpperCase() || "INV";
 
   assignments.forEach(({ payroll, member }, index) => {
@@ -177,7 +177,7 @@ export function createInvoiceWorkbook(client: InvoiceClient, assignments: Invoic
     const invoiceNumber = `${invoicePrefix}-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${String(index + 1).padStart(3, "0")}`;
     const detailStart = 23;
     const details = payroll.lines.length > 0 ? payroll.lines : [{
-      description: `Prestation de service en tant que ${payroll.position}`,
+      description: `Services as ${payroll.position}`,
       from: null,
       to: null,
       quantity: null,
@@ -195,25 +195,25 @@ export function createInvoiceWorkbook(client: InvoiceClient, assignments: Invoic
       [legalValue("PATENTE", member.patent_number)],
       [legalValue("ICE", member.ice)],
       [legalValue("IF", member.if_number)],
-      [null, null, "DATE :", invoiceDate],
-      [null, null, "N° FACTURE :", invoiceNumber],
+      [null, null, "DATE:", invoiceDate],
+      [null, null, "INVOICE NO.:", invoiceNumber],
       [],
       [],
       [],
       [],
       ["Client", client.name],
       ["ICE", client.ice || ""],
-      ["Adresse", client.address || ""],
+      ["Address", client.address || ""],
       [],
       [],
       [],
       [],
       [],
-      ["DESCRIPTION", "PERIODE", "QTE / TAUX", "MONTANT MAD"],
+      ["DESCRIPTION", "PERIOD", "QTY / RATE", "AMOUNT MAD"],
     ];
 
     details.forEach((line) => {
-      const period = [line.from, line.to].filter(Boolean).join(" au ");
+      const period = [line.from, line.to].filter(Boolean).join(" to ");
       const quantityRate = [
         line.quantity !== null ? `${line.quantity} ${line.unit || ""}`.trim() : "",
         line.rate !== null ? `x ${line.rate}` : "",
@@ -223,14 +223,14 @@ export function createInvoiceWorkbook(client: InvoiceClient, assignments: Invoic
 
     rows.push(
       [],
-      [null, null, "Total à payer", total],
+      [null, null, "Total due", total],
       [],
-      ["Détails bancaires"],
-      ["Intitulé", fullName],
-      ["Nom de la Banque", member.bank_name || ""],
-      ["Mode de paiement", member.payment_method || ""],
-      ["N° de compte", member.bank_account_number || ""],
-      ["Compte analytique", payroll.accountCode],
+      ["Bank details"],
+      ["Account holder", fullName],
+      ["Bank name", member.bank_name || ""],
+      ["Payment method", member.payment_method || ""],
+      ["Account no.", member.bank_account_number || ""],
+      ["Cost account", payroll.accountCode],
     );
 
     const sheet = XLSX.utils.aoa_to_sheet(rows);

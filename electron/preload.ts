@@ -21,6 +21,9 @@ contextBridge.exposeInMainWorld("electron", {
     installUpdate: () => ipcRenderer.invoke("install-update"),
     openDownloads: () => ipcRenderer.invoke("open-downloads"),
     openReleases: () => ipcRenderer.invoke("open-releases"),
+    setTitleBarColors: (colors: { color: string; symbolColor: string }) => {
+        ipcRenderer.send("title-bar-colors", colors);
+    },
     onUpdateStatus: (callback: (status: unknown) => void) => {
         const listener = (_event: Electron.IpcRendererEvent, status: unknown) => callback(status);
         ipcRenderer.on("update-status", listener);

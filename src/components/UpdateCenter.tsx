@@ -7,23 +7,23 @@ const initialStatus: UpdateStatus = { state: "idle" };
 function statusLabel(status: UpdateStatus) {
   switch (status.state) {
     case "checking":
-      return "Verification en cours...";
+      return "Checking for updates…";
     case "available":
       return status.message
-        ? `Version ${status.version ?? "plus recente"} disponible. ${status.message}`
-        : `Version ${status.version ?? "plus recente"} disponible`;
+        ? `Version ${status.version ?? "newer"} available. ${status.message}`
+        : `Version ${status.version ?? "newer"} available`;
     case "not-available":
-      return status.message ?? "Logifilm est a jour";
+      return status.message ?? "Logifilm is up to date";
     case "downloading":
       return `Telechargement ${status.percent ?? 0}%`;
     case "downloaded":
       return `Version ${status.version ?? ""} prete a installer`;
     case "manual-download":
-      return status.message ?? "Ouvrez le DMG telecharge puis remplacez Logifilm dans Applications.";
+      return status.message ?? "Open the downloaded DMG, then replace Logifilm in Applications.";
     case "disabled":
-      return status.message ?? "Disponible dans l'application installee";
+      return status.message ?? "Available in the installed app";
     case "error":
-      return status.message ?? "Impossible de verifier les mises a jour";
+      return status.message ?? "Unable to check for updates";
     default:
       return `Version installee : ${window.platform?.version ?? ""}`;
   }
@@ -73,14 +73,14 @@ export default function UpdateCenter() {
         <section className={`mb-2 w-[min(360px,calc(100vw-24px))] p-4 ${panelClass}`}>
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-sm font-semibold">Mise a jour Logifilm pour {osName}</h2>
+              <h2 className="text-sm font-semibold">Logifilm update for {osName}</h2>
               <p className={`mt-1 max-h-20 overflow-hidden break-words text-xs leading-5 ${secondaryTextClass}`}>
                 {statusLabel(status)}
               </p>
             </div>
             <button
               type="button"
-              title="Fermer"
+              title="Close"
               onClick={() => setOpen(false)}
               className={`grid h-8 w-8 shrink-0 place-items-center ${closeClass}`}
             >
@@ -105,7 +105,7 @@ export default function UpdateCenter() {
                 className={`flex h-9 items-center gap-2 px-3 text-xs font-semibold ${primaryButtonClass}`}
               >
                 <Download size={15} />
-                Telecharger pour {osName}
+                Download for {osName}
               </button>
             )}
 
@@ -116,7 +116,7 @@ export default function UpdateCenter() {
                 className={`flex h-9 items-center gap-2 px-3 text-xs font-semibold ${installButtonClass}`}
               >
                 <RotateCcw size={15} />
-                Redemarrer et installer
+                Restart and install
               </button>
             )}
 
@@ -127,7 +127,7 @@ export default function UpdateCenter() {
                 className={`flex h-9 items-center gap-2 px-3 text-xs font-semibold ${primaryButtonClass}`}
               >
                 <FolderOpen size={15} />
-                Ouvrir Telechargements
+                Open Downloads
               </button>
             )}
 
@@ -139,7 +139,7 @@ export default function UpdateCenter() {
                 className={`flex h-9 items-center gap-2 px-3 text-xs font-semibold disabled:cursor-wait disabled:opacity-50 ${primaryButtonClass}`}
               >
                 <RefreshCw size={15} className={busy ? "animate-spin" : ""} />
-                Verifier
+                Check
               </button>
             )}
 
@@ -149,7 +149,7 @@ export default function UpdateCenter() {
               className={`flex h-9 items-center gap-2 px-3 text-xs font-medium ${secondaryButtonClass}`}
             >
               <ExternalLink size={15} />
-              Telechargements {osName}
+              {osName} downloads
             </button>
           </div>
         </section>
@@ -157,12 +157,12 @@ export default function UpdateCenter() {
 
       <button
         type="button"
-        title="Mises a jour"
+        title="Updates"
         onClick={() => setOpen((current) => !current)}
         className={`ml-auto flex h-9 items-center gap-2 px-3 text-xs font-medium ${triggerClass}`}
       >
         {status.state === "available" ? <Download size={15} /> : <RefreshCw size={15} />}
-        Mise a jour
+        Updates
         {status.state === "available" && <span className="h-2 w-2 rounded-full bg-blue-400" />}
       </button>
     </div>

@@ -1,3 +1,4 @@
+@import "./glass.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -82,9 +83,7 @@ html[data-platform="win"] {
 /* ------------------------------
    DARK MODE macOS
 ------------------------------ */
-@media (prefers-color-scheme: dark) {
-  body {
-    background: linear-gradient(180deg, #1a1b1f 0%, #0f1014 100%);
-    color-scheme: dark;
-  }
+html.dark body {
+  background: linear-gradient(180deg, #1a1b1f 0%, #0f1014 100%);
+  color-scheme: dark;
 }
