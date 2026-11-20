@@ -1,4 +1,4 @@
-import { Routes, Route, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 
 // 🧭 Pages principales
@@ -25,20 +25,30 @@ const NewStarterFormMac = lazy(() => import("./pages/NewStarterFormMac"));
 const NewStarterFormWindows = lazy(() => import("./pages/NewStarterFormWindows"));
 
 // 🛡️ Guards
-import InterfacePicker from "./components/shell/InterfacePicker";
+import InterfacePicker, { installedInterface } from "./components/shell/InterfacePicker";
 import AppTitleBar from "./components/shell/AppTitleBar";
 import RequireLicense from "./components/RequireLicense";
 import UpdateCenter from "./components/UpdateCenter";
 
 export default function App() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  // Installed app: each system keeps its own design (Windows → Windows 11 style,
+  // macOS → macOS style). Any other route, including the picker, is redirected.
+  const locked = installedInterface();
+  const lockedRoot = locked === "mac" ? "/mac" : "/windows";
+  const outsideLockedStyle = locked !== null && pathname !== lockedRoot && !pathname.startsWith(`${lockedRoot}/`);
 
   return (
     <>
       <AppTitleBar />
+      {outsideLockedStyle ? (
+        <Navigate to={lockedRoot} replace />
+      ) : (
       <Suspense key="routes" fallback={<div className="h-screen w-full bg-[#0a0f1c]" />}>
         <Routes>
-        {/* Start: choose the macOS or Windows 11 interface (on any computer). */}
+        {/* Development only: try either style (the installed app is redirected above). */}
         <Route path="/" element={<InterfacePicker />} />
 
         {/* ================================
@@ -206,6 +216,7 @@ export default function App() {
         />
         </Routes>
       </Suspense>
+      )}
 
       <UpdateCenter key="update-center" />
     </>

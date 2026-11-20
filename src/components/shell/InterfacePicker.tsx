@@ -13,6 +13,18 @@ export function systemInterface(): GlassOS {
   return /Mac/i.test(navigator.userAgent) ? "mac" : "win";
 }
 
+/**
+ * In the installed app each system has its own design: the Windows installer
+ * always opens the Windows 11 style, the macOS installer the macOS style.
+ * Returns that locked style, or null in development / browser preview,
+ * where both styles can be tried from the picker.
+ */
+export function installedInterface(): GlassOS | null {
+  const platform = window.platform;
+  if (!platform?.isElectron || !platform.isProd) return null;
+  return platform.os === "darwin" ? "mac" : "win";
+}
+
 function lastInterface(): GlassOS | null {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
@@ -41,7 +53,7 @@ const CHOICES: Array<{ os: GlassOS; title: string; text: string; icon: React.Rea
   },
 ];
 
-/** Start screen: lets the user choose the macOS or Windows 11 interface, on any computer. */
+/** Development screen: try the macOS or Windows 11 interface. Never shown in the installed app. */
 export default function InterfacePicker() {
   const navigate = useNavigate();
   const recommended = systemInterface();
@@ -65,7 +77,7 @@ export default function InterfacePicker() {
 
       <div className="lf-start" style={{ minHeight: "auto", padding: "40px 0 8px" }}>
         <h1 style={{ fontSize: 38 }}>Choose your interface</h1>
-        <p>Both styles have the same features. You can switch at any time from this screen.</p>
+        <p>Development preview: pick a style to test it. The installed app opens the style of its own system automatically.</p>
       </div>
 
       <div className="lf-picker">

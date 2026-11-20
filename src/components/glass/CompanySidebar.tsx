@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { FileText, FolderOpen, Home, LayoutGrid, LogOut, Shuffle, Users, Wallet } from "lucide-react";
 import { supabase } from "../../supabaseClient";
+import { installedInterface } from "../shell/InterfacePicker";
 import { Brand, NavItem, NavSection, SidebarFooter, ThemeToggle, type GlassOS } from "./Glass";
 
 export type CompanySection = "home" | "projects" | "project" | "crew" | "contracts" | "payroll";
@@ -51,9 +52,12 @@ export default function CompanySidebar({
 
       <SidebarFooter>
         <ThemeToggle />
-        <button type="button" className="lf-btn lf-btn-ghost lf-btn-sm" onClick={() => navigate("/")}>
-          <Shuffle /> Switch interface
-        </button>
+        {/* Development only: the installed app keeps the design of its own system. */}
+        {!installedInterface() && (
+          <button type="button" className="lf-btn lf-btn-ghost lf-btn-sm" onClick={() => navigate("/")}>
+            <Shuffle /> Switch interface
+          </button>
+        )}
         <button
           type="button"
           className="lf-btn lf-btn-danger lf-btn-sm"

@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Building2, Clapperboard, LogOut, Plus, Shuffle } from "lucide-react";
 import { supabase } from "../../supabaseClient";
+import { installedInterface } from "../shell/InterfacePicker";
 import { Brand, GlassFrame, Hero, Panel, ThemeToggle, Tile, colorFor, type GlassOS } from "../glass/Glass";
 
 export const NEW_COMPANY = "Nouveau";
@@ -38,9 +39,12 @@ export default function HomeView({ os, vm }: { os: GlassOS; vm: HomeViewModel })
         <Brand />
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <ThemeToggle />
-          <button type="button" className="lf-btn lf-btn-ghost lf-btn-sm" onClick={() => navigate("/")}>
-            <Shuffle /> Switch interface
-          </button>
+          {/* Development only: the installed app keeps the design of its own system. */}
+          {!installedInterface() && (
+            <button type="button" className="lf-btn lf-btn-ghost lf-btn-sm" onClick={() => navigate("/")}>
+              <Shuffle /> Switch interface
+            </button>
+          )}
           <button
             type="button"
             className="lf-btn lf-btn-ghost lf-btn-sm"

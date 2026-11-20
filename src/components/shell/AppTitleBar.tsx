@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useTheme } from "../../theme/theme";
-import { systemInterface } from "./InterfacePicker";
+import { installedInterface, systemInterface } from "./InterfacePicker";
 
 const HEIGHT = "40px";
 
@@ -23,7 +23,7 @@ export default function AppTitleBar() {
   const platform = window.platform;
   const visible = Boolean(platform?.isElectron);
   const isDarwin = platform?.os === "darwin";
-  const style = pathname.startsWith("/windows") ? "win" : pathname.startsWith("/mac") ? "mac" : systemInterface();
+  const style = installedInterface() ?? (pathname.startsWith("/windows") ? "win" : pathname.startsWith("/mac") ? "mac" : systemInterface());
 
   // Reserve the bar's height for every page while it is shown.
   useEffect(() => {
