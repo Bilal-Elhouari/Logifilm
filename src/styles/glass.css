@@ -523,3 +523,15 @@ textarea.lf-input { resize: vertical; min-height: 72px; font-family: inherit; }
 .lf-request-list li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px; border-radius: 10px; background: rgba(127, 127, 127, 0.08); }
 .lf-request-list strong { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lf-request-list span { display: block; font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+
+/* Team panel: companies a colleague can open */
+.lf-team-companies { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.lf-team-companies em { font-size: 12px; color: var(--ink-3); font-style: normal; }
+.lf-team-company { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; font: inherit; font-size: 12px; font-weight: 600;
+  color: var(--ink-2); background: transparent; border: 1px dashed var(--stroke, rgba(127, 127, 127, 0.4)); cursor: pointer; }
+.lf-team-company svg { width: 13px; height: 13px; }
+.lf-team-company.is-on { color: #fff; border-style: solid; border-color: transparent; background: linear-gradient(135deg, #22c55e, #16a34a); }
+.lf-team-company:disabled { opacity: 0.6; cursor: default; }
+.lf-win .lf-team-company { border-radius: 4px; }
+.lf-mac .lf-team-company { border-radius: 999px; }
+.lf-company-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }

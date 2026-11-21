@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, Check, LoaderCircle, UserCheck, X } from "lucide-react";
-import { decideRequest, isPlatformAdmin, listPendingRequests, type PendingRequest } from "../../services/license";
+import { amIAdmin, decideRequest, listPendingRequests, type PendingRequest } from "../../services/license";
 import { Tile, type GlassOS } from "../glass/Glass";
 
 const POLL_MS = 60 * 1000;
@@ -13,6 +13,10 @@ const DURATIONS: Array<{ label: string; days: number | null }> = [
   { label: "Unlimited", days: null },
 ];
 const DEFAULT_DURATION = "365";
+const ROLES = [
+  { value: "colleague", label: "Colleague" },
+  { value: "admin", label: "Administrator" },
+];
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -36,6 +40,7 @@ export default function AccessRequests({ os }: { os: GlassOS }) {
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState(false);
   const [durations, setDurations] = useState<Record<string, string>>({});
+  const [roles, setRoles] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
   const noticeShown = useRef(false);
@@ -56,7 +61,7 @@ export default function AccessRequests({ os }: { os: GlassOS }) {
   useEffect(() => {
     let active = true;
     let timer: number | undefined;
-    isPlatformAdmin().then((yes) => {
+    amIAdmin().then((yes) => {
       if (!active || !yes) return;
       setAdmin(true);
       void refresh();
@@ -70,17 +75,24 @@ export default function AccessRequests({ os }: { os: GlassOS }) {
 
   async function decide(request: PendingRequest, approve: boolean) {
     if (!approve && !window.confirm(`Decline the request from ${request.email ?? "this account"}?`)) return;
+    if (approve && roles[request.id] === "admin" &&
+        !window.confirm(`Make ${request.email ?? "this account"} an administrator? They will manage every company and every account.`)) return;
     setBusyId(request.id);
     setFeedback("");
     try {
       const value = durations[request.id] ?? DEFAULT_DURATION;
       const days = value === "unlimited" ? null : Number(value);
-      const result = await decideRequest(request.id, approve, days);
+      const makeAdmin = roles[request.id] === "admin";
+      const result = await decideRequest(request.id, approve, days, makeAdmin);
       if (!result.ok && result.reason === "already_decided") {
         setFeedback(`${request.email ?? "This request"} was already ${result.status}.`);
       } else {
         const duration = DURATIONS.find((d) => String(d.days ?? "unlimited") === value)?.label.toLowerCase();
-        setFeedback(approve ? `${request.email} approved (${duration}).` : `${request.email} declined.`);
+        setFeedback(
+          approve
+            ? `${request.email} approved as ${makeAdmin ? "administrator" : "colleague"} (${duration}).${makeAdmin ? "" : " Give them access to a company in Team."}`
+            : `${request.email} declined.`,
+        );
       }
       await refresh();
     } catch (error) {
@@ -157,7 +169,7 @@ export default function AccessRequests({ os }: { os: GlassOS }) {
               <header className="lf-modal-head">
                 <div>
                   <h2 id="lf-requests-title">Account requests</h2>
-                  <p className="lf-muted">Approving activates a licence on the account right away.</p>
+                  <p className="lf-muted">Approving activates a licence on the account right away. Administrators manage every company; colleagues only see the companies you give them in Team.</p>
                 </div>
                 <button type="button" className="lf-icon-btn" onClick={() => setOpen(false)} aria-label="Close">
                   <X />
@@ -186,6 +198,18 @@ export default function AccessRequests({ os }: { os: GlassOS }) {
                       >
                         {DURATIONS.map((duration) => (
                           <option key={duration.label} value={String(duration.days ?? "unlimited")}>{duration.label}</option>
+                        ))}
+                      </select>
+                      <select
+                        className="lf-select"
+                        style={{ width: "auto" }}
+                        value={roles[request.id] ?? "colleague"}
+                        onChange={(event) => setRoles((current) => ({ ...current, [request.id]: event.target.value }))}
+                        aria-label={`Role for ${request.email ?? "this account"}`}
+                        disabled={busyId === request.id}
+                      >
+                        {ROLES.map((role) => (
+                          <option key={role.value} value={role.value}>{role.label}</option>
                         ))}
                       </select>
                       <button type="button" className="lf-btn lf-btn-success lf-btn-sm" onClick={() => decide(request, true)} disabled={busyId !== null}>

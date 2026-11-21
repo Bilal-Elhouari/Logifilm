@@ -1,9 +1,13 @@
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Building2, Clapperboard, LogOut, Plus, Shuffle } from "lucide-react";
+import { ArrowRight, Building2, Check, Clapperboard, LoaderCircle, LogOut, Pencil, Plus, Shuffle, Trash2, X } from "lucide-react";
+import { api } from "../../services/api";
+import { amIAdmin } from "../../services/license";
 import { supabase } from "../../supabaseClient";
 import { installedInterface } from "../shell/InterfacePicker";
 import AccessRequests from "../admin/AccessRequests";
+import TeamManager from "../admin/TeamManager";
 import { Brand, GlassFrame, Hero, Panel, ThemeToggle, Tile, colorFor, type GlassOS } from "../glass/Glass";
 
 export const NEW_COMPANY = "Nouveau";
@@ -23,10 +27,72 @@ export type HomeViewModel = {
   newProject: string;
   setNewProject: (value: string) => void;
   onEnter: () => void;
+  reloadCompanies: () => Promise<void>;
 };
 
 export default function HomeView({ os, vm }: { os: GlassOS; vm: HomeViewModel }) {
   const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    amIAdmin().then((yes) => active && setIsAdmin(yes));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    setRenaming(null);
+    setActionError("");
+  }, [vm.selected]);
+
+  async function saveRename(current: string) {
+    if (renaming === null || renaming.trim() === current) {
+      setRenaming(null);
+      return;
+    }
+    setBusy(true);
+    setActionError("");
+    try {
+      const company = await api.getCompanyByName(current);
+      const renamed = await api.renameCompany(company.id, renaming);
+      await vm.reloadCompanies();
+      vm.setSelected(renamed.name);
+      setRenaming(null);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "The company could not be renamed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteCompany(current: string) {
+    const typed = window.prompt(
+      `Delete ${current} with ALL its projects, crew members and contracts? This cannot be undone.\n\nType the company name to confirm:`,
+    );
+    if (typed === null) return;
+    if (typed.trim() !== current) {
+      setActionError("The name did not match: nothing was deleted.");
+      return;
+    }
+    setBusy(true);
+    setActionError("");
+    try {
+      const company = await api.getCompanyByName(current);
+      await api.deleteCompany(company.id);
+      vm.setSelected("");
+      await vm.reloadCompanies();
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "The company could not be deleted.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const isNew = vm.selected === NEW_COMPANY;
   const hasCompany = Boolean(vm.selected) && !isNew;
   const creatingProject = hasCompany && (vm.selectedProjectId === NEW_PROJECT || (!vm.loadingProjects && vm.projects.length === 0));
@@ -40,6 +106,7 @@ export default function HomeView({ os, vm }: { os: GlassOS; vm: HomeViewModel })
         <Brand />
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <AccessRequests os={os} />
+          <TeamManager os={os} />
           <ThemeToggle />
           {/* Development only: the installed app keeps the design of its own system. */}
           {!installedInterface() && (
@@ -60,11 +127,18 @@ export default function HomeView({ os, vm }: { os: GlassOS; vm: HomeViewModel })
         </div>
       </div>
 
-      <Hero title="Welcome to Logifilm" subtitle="Choose a company, then the project you are working on." />
+      <Hero
+        title="Welcome to Logifilm"
+        subtitle={isAdmin ? "Choose a company, then the project you are working on." : "Choose one of your companies, then the project you are working on."}
+      />
 
       <Panel title="1. Company">
         {vm.loading ? (
           <p className="lf-muted">Loading companies…</p>
+        ) : vm.companies.length === 0 && !isAdmin ? (
+          <p className="lf-muted">
+            You do not have access to a company yet. Ask your administrator to add you to one in <strong>Team</strong>, then sign in again.
+          </p>
         ) : (
           <div className="lf-pick-grid" role="radiogroup" aria-label="Company">
             {vm.companies.map((company) => (
@@ -80,6 +154,7 @@ export default function HomeView({ os, vm }: { os: GlassOS; vm: HomeViewModel })
                 <span>{company}</span>
               </button>
             ))}
+            {isAdmin && (
             <button
               type="button"
               role="radio"
@@ -90,8 +165,47 @@ export default function HomeView({ os, vm }: { os: GlassOS; vm: HomeViewModel })
               <Tile color="slate"><Plus /></Tile>
               <span>New company</span>
             </button>
+            )}
           </div>
         )}
+
+        {isAdmin && hasCompany && vm.selected && (
+          <div className="lf-company-actions">
+            {renaming !== null ? (
+              <>
+                <input
+                  className="lf-input"
+                  style={{ flex: "1 1 220px", width: "auto" }}
+                  value={renaming}
+                  onChange={(event) => setRenaming(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") void saveRename(vm.selected!);
+                    if (event.key === "Escape") setRenaming(null);
+                  }}
+                  aria-label="New company name"
+                  autoFocus
+                  disabled={busy}
+                />
+                <button type="button" className="lf-btn lf-btn-primary lf-btn-sm" onClick={() => saveRename(vm.selected!)} disabled={busy || !renaming.trim()}>
+                  {busy ? <LoaderCircle className="animate-spin" /> : <Check />} Save
+                </button>
+                <button type="button" className="lf-btn lf-btn-ghost lf-btn-sm" onClick={() => setRenaming(null)} disabled={busy}>
+                  <X /> Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <button type="button" className="lf-btn lf-btn-ghost lf-btn-sm" onClick={() => setRenaming(vm.selected)} disabled={busy}>
+                  <Pencil /> Rename {vm.selected}
+                </button>
+                <button type="button" className="lf-btn lf-btn-danger lf-btn-sm" onClick={() => deleteCompany(vm.selected!)} disabled={busy}>
+                  {busy ? <LoaderCircle className="animate-spin" /> : <Trash2 />} Delete {vm.selected}
+                </button>
+              </>
+            )}
+          </div>
+        )}
+        {actionError && <div className="lf-alert" role="alert" style={{ marginTop: 12 }}>{actionError}</div>}
       </Panel>
 
       <AnimatePresence mode="wait">

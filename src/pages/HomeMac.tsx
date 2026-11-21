@@ -1,12 +1,8 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import HomeView from "../components/home/HomeView";
 import { api } from "../services/api";
 import { supabase } from "../supabaseClient";
-
-interface Company {
-  name: string;
-}
 
 export default function HomeMac() {
   const [selected, setSelected] = useState<string | null>(null);
@@ -31,19 +27,20 @@ export default function HomeMac() {
   }, [navigate]);
 
   /* LOAD COMPANIES */
-  useEffect(() => {
-    async function fetchCompanies() {
-      try {
-        const data = await api.getAllCompanies();
-        if (data) setCompanies(data.map((c: Company) => c.name));
-      } catch (err) {
-        console.error("Error fetching companies:", err);
-      } finally {
-        setLoading(false);
-      }
+  const fetchCompanies = useCallback(async () => {
+    try {
+      const data = await api.getAllCompanies();
+      setCompanies((data || []).map((c) => c.name));
+    } catch (err) {
+      console.error("Error fetching companies:", err);
+    } finally {
+      setLoading(false);
     }
-    fetchCompanies();
   }, []);
+
+  useEffect(() => {
+    void fetchCompanies();
+  }, [fetchCompanies]);
 
   useEffect(() => {
     setProjects([]);
@@ -143,6 +140,7 @@ export default function HomeMac() {
         newProject,
         setNewProject,
         onEnter: handleEnter,
+        reloadCompanies: fetchCompanies,
       }}
     />
   );
