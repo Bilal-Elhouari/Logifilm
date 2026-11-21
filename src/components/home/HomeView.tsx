@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, Building2, Clapperboard, LogOut, Plus, Shuffle } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import { installedInterface } from "../shell/InterfacePicker";
+import AccessRequests from "../admin/AccessRequests";
 import { Brand, GlassFrame, Hero, Panel, ThemeToggle, Tile, colorFor, type GlassOS } from "../glass/Glass";
 
 export const NEW_COMPANY = "Nouveau";
@@ -38,6 +39,7 @@ export default function HomeView({ os, vm }: { os: GlassOS; vm: HomeViewModel })
       <div className="lf-topbar">
         <Brand />
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <AccessRequests os={os} />
           <ThemeToggle />
           {/* Development only: the installed app keeps the design of its own system. */}
           {!installedInterface() && (

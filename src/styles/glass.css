@@ -485,3 +485,41 @@ textarea.lf-input { resize: vertical; min-height: 72px; font-family: inherit; }
 .lf-titlebar-mac { justify-content: center; color: #4a5160; background: #eef2fb; border-bottom: 1px solid rgba(15, 17, 21, 0.06); }
 .dark .lf-titlebar-mac { color: #b4bccb; background: #0b0d14; border-bottom-color: rgba(255, 255, 255, 0.06); }
 .lf-titlebar-mac .lf-logo { display: none; }
+
+/* =====================================================================
+   Account requests (administrators)
+   ===================================================================== */
+.lf-bell { position: relative; }
+.lf-badge-count { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; display: inline-grid; place-items: center;
+  font-size: 11px; font-weight: 700; color: #fff; background: #ef4444; box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25); }
+.lf-icon-btn { border: 0; background: transparent; color: var(--ink-3); cursor: pointer; padding: 4px; border-radius: 6px; display: grid; place-items: center; }
+.lf-icon-btn:hover { background: rgba(127, 127, 127, 0.15); color: var(--ink); }
+.lf-icon-btn svg { width: 16px; height: 16px; }
+
+.lf-toast { position: fixed; top: calc(var(--lf-titlebar-h, 0px) + 16px); right: 16px; z-index: 70; display: flex; align-items: center; gap: 12px;
+  max-width: min(440px, calc(100vw - 32px)); padding: 12px 12px 12px 14px; color: var(--ink);
+  backdrop-filter: blur(30px) saturate(170%); -webkit-backdrop-filter: blur(30px) saturate(170%); }
+.lf-toast strong { display: block; font-size: 14px; }
+.lf-toast span:not(.lf-tile) { display: block; font-size: 12px; color: var(--ink-3); }
+.lf-win .lf-toast { border-radius: 8px; background: var(--card); border: 1px solid var(--stroke); box-shadow: 0 14px 34px rgba(0, 0, 0, 0.2);
+  border-left: 4px solid #f59e0b; }
+.lf-mac .lf-toast { border-radius: 16px; background: var(--glass-strong); border: 1px solid var(--line); box-shadow: 0 18px 40px rgba(15, 20, 40, 0.2); }
+
+.lf-modal-backdrop { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 24px; background: rgba(8, 10, 20, 0.45);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+.lf-modal { width: min(720px, 100%); max-height: calc(100vh - 80px); overflow: auto; color: var(--ink); }
+.lf-win .lf-modal { border-radius: 10px; background: var(--card); border: 1px solid var(--stroke); box-shadow: 0 30px 70px rgba(0, 0, 0, 0.35); }
+.dark .lf-win .lf-modal { background: #1c1e30; }
+.lf-mac .lf-modal { border-radius: 20px; background: var(--glass-strong); border: 1px solid var(--line); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%); }
+.dark .lf-mac .lf-modal { background: rgba(30, 32, 42, 0.92); }
+.lf-modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px; }
+.lf-modal-head h2 { margin: 0; font-size: 18px; font-weight: 700; }
+.lf-modal-head p { margin: 4px 0 0; }
+.lf-win .lf-modal-head { color: #fff; background: var(--grad); border-radius: 10px 10px 0 0; margin-bottom: 14px; }
+.lf-win .lf-modal-head .lf-muted { color: rgba(255, 255, 255, 0.85); }
+.lf-win .lf-modal-head .lf-icon-btn { color: rgba(255, 255, 255, 0.9); }
+.lf-request-list { list-style: none; margin: 0; padding: 0 18px 18px; display: flex; flex-direction: column; gap: 8px; }
+.lf-request-list li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px; border-radius: 10px; background: rgba(127, 127, 127, 0.08); }
+.lf-request-list strong { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lf-request-list span { display: block; font-size: 12px; color: var(--ink-3); margin-top: 2px; }
