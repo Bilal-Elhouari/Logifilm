@@ -71,7 +71,7 @@ export default function AuthView({ os, vm }: { os: GlassOS; vm: AuthViewModel })
 
           <h2>{isLogin ? "Welcome back" : "Create your account"}</h2>
           <p className="lf-muted" style={{ margin: "4px 0 18px" }}>
-            {isLogin ? "Sign in to access your companies and projects." : "You will be asked for a licence key after signing up."}
+            {isLogin ? "Sign in to access your companies and projects." : "An administrator approves new accounts before first use."}
           </p>
 
           <form onSubmit={isLogin ? vm.onLogin : vm.onSignup} style={{ display: "flex", flexDirection: "column", gap: 12 }}>

@@ -157,3 +157,43 @@ Dans l'ordre :
 - **Obligations légales.** Les fiches contiennent des données personnelles de salariés et de prestataires (CIN, coordonnées bancaires). Au Maroc, la loi 09-08 encadre ces données, sous le contrôle de la CNDP. Si des accès suspects apparaissent, renseignez-vous sur vos obligations auprès d'un conseil juridique.
 - **Fichier de test du dépôt.** `src/utils/payrollInvoice.test.ts` contient un nom, des ICE et un numéro de compte bancaire qui semblent réels. Remplacez-les par des données fictives. Comme le dépôt est public, il faut aussi les retirer de l'historique git.
 - **Licences sur une base neuve.** Sur une base créée de zéro, `migrations/20260615_account_licenses.sql` écrit dans des colonnes `device_id` et `device_name` que `supabase_licenses_schema.sql` ne crée pas : l'activation de licence échouerait. La base de production, issue de l'ancien système de licence par appareil, n'est pas concernée. À corriger avant une nouvelle installation.
+
+---
+
+# Validation des nouveaux comptes par l'administrateur
+
+Avec `migrations/20261121_account_approval.sql` :
+
+1. Toute personne qui **s'inscrit** crée automatiquement une **demande d'accès**. Dans l'app, elle voit « Waiting for approval ».
+2. L'**administrateur** voit à sa connexion une notification et une cloche **Requests** avec le nombre de demandes (vérifiées toutes les minutes).
+3. Il choisit une **durée** (1 mois, 3 mois, 1 an ou illimitée), puis **Approve** ou **Decline**.
+4. **Approve** crée une licence et l'**active directement** sur le compte : pas de clé à envoyer. La personne clique sur « Check again » (ou relance l'app) et entre.
+5. **Decline** : la personne voit « Request declined ».
+
+Les comptes existants **sans licence** apparaissent aussi dans la liste au moment de l'installation.
+
+## Installation (une seule fois)
+
+1. Supabase → SQL Editor : coller **tout** `migrations/20261121_account_approval.sql` → Run (à faire après les deux scripts de sécurité).
+2. Te déclarer administrateur (remplace l'e-mail) :
+
+   ```sql
+   insert into public.platform_admins (user_id)
+   select id from auth.users where email = 'ton-email@exemple.com'
+   on conflict do nothing;
+   ```
+
+3. Vérifier :
+
+   ```sql
+   select u.email from public.platform_admins a join auth.users u on u.id = a.user_id;  -- les administrateurs
+   select email, status, created_at from public.license_requests order by created_at desc;  -- les demandes
+   ```
+
+L'administrateur doit lui-même avoir une licence active pour utiliser l'app.
+
+## Bon à savoir
+
+- **Confirmation d'e-mail** : si *Authentication → Sign In / Providers → Email → Confirm email* est activé, Supabase envoie d'abord à la personne un e-mail de confirmation (c'est son propre e-mail, sans clé). La demande apparaît dès l'inscription, même avant cette confirmation.
+- **Retirer un administrateur** : `delete from public.platform_admins where user_id = (select id from auth.users where email = '…');`
+- **Revenir sur un refus** : `update public.license_requests set status = 'pending', decided_at = null, decided_by = null where email = '…';` (la demande réapparaît dans l'app).
