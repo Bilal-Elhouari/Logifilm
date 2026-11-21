@@ -65,16 +65,20 @@ Tant que cette page ne contient aucune release publiee avec les fichiers
 - `Bilal-Elhouari/Logifilm-releases` : installateurs et fichiers de mise à jour, **public**, sans code.
   Les applications installées (v1.0.9 et plus) y cherchent leurs mises à jour.
 
-`release.yml` publie dans les deux dépôts. Pour écrire dans `Logifilm-releases`,
-le workflow a besoin du secret `RELEASES_TOKEN` :
+Publier une version, en deux temps :
 
-1. GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token.
-2. Repository access : *Only select repositories* → `Logifilm-releases`.
-3. Permissions → Repository permissions → **Contents : Read and write**.
-4. Copier le token, puis dans le dépôt `Logifilm` : Settings → Secrets and variables → Actions →
-   New repository secret, nom `RELEASES_TOKEN`.
+1. Pousser le tag (par exemple `v1.0.9`) : `release.yml` compile les installateurs
+   et les publie dans les releases du dépôt de code.
+2. Quand le workflow est terminé (Mac et Windows), copier la version vers le dépôt public :
 
-Le token expire : notez sa date et renouvelez-le avant, sinon la publication échouera.
+   ```bash
+   scripts/publish-public-release.sh v1.0.9
+   ```
+
+   Le script utilise la connexion GitHub de l'ordinateur (`gh auth login`), aucune clé
+   n'est stockée. Il refuse de publier tant qu'un fichier manque (`.exe`, `.dmg`, `.zip`,
+   `latest.yml`, `latest-mac.yml`…), pour que les clients ne voient jamais une version
+   incomplète.
 
 `build.yml` ne fait qu'un contrôle rapide (types, tests, lint) à chaque push. Pour
 compiler les installateurs sans publier : onglet Actions → *Check & Build* → *Run workflow*.

@@ -5,6 +5,8 @@ on:
     tags:
       - 'v*'
 
+# Installers are published here; scripts/publish-public-release.sh then copies them
+# to the public Bilal-Elhouari/Logifilm-releases repository (no token needed).
 permissions:
   contents: write
 
@@ -37,7 +39,7 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: npm run build:mac -- --publish never
 
-      - name: Publish macOS assets (private source repository)
+      - name: Publish macOS assets (source repository)
         if: matrix.os == 'macos-latest'
         uses: softprops/action-gh-release@v2
         with:
@@ -48,29 +50,12 @@ jobs:
             release/*.zip.blockmap
             release/latest-mac.yml
 
-      # Public download and update channel for clients (no source code there).
-      # Needs the RELEASES_TOKEN secret: a fine-grained token with "Contents: read
-      # and write" on Bilal-Elhouari/Logifilm-releases only.
-      - name: Publish macOS assets (public releases repository)
-        if: matrix.os == 'macos-latest'
-        uses: softprops/action-gh-release@v2
-        with:
-          repository: Bilal-Elhouari/Logifilm-releases
-          token: ${{ secrets.RELEASES_TOKEN }}
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          files: |
-            release/*.dmg
-            release/*.dmg.blockmap
-            release/*.zip
-            release/*.zip.blockmap
-            release/latest-mac.yml
 
       - name: Build Windows
         if: matrix.os == 'windows-latest'
         run: npm run build:win -- --publish never
 
-      - name: Publish Windows assets (private source repository)
+      - name: Publish Windows assets (source repository)
         if: matrix.os == 'windows-latest'
         uses: softprops/action-gh-release@v2
         with:
@@ -79,18 +64,3 @@ jobs:
             release/*.exe.blockmap
             release/latest.yml
 
-      # Public download and update channel for clients (no source code there).
-      # Needs the RELEASES_TOKEN secret: a fine-grained token with "Contents: read
-      # and write" on Bilal-Elhouari/Logifilm-releases only.
-      - name: Publish Windows assets (public releases repository)
-        if: matrix.os == 'windows-latest'
-        uses: softprops/action-gh-release@v2
-        with:
-          repository: Bilal-Elhouari/Logifilm-releases
-          token: ${{ secrets.RELEASES_TOKEN }}
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          files: |
-            release/*.exe
-            release/*.exe.blockmap
-            release/latest.yml
