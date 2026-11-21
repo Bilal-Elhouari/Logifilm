@@ -40,6 +40,29 @@ trap 'rm -rf "$workdir"' EXIT
 echo "Downloading $TAG from $SOURCE_REPO…"
 gh release download "$TAG" --repo "$SOURCE_REPO" --dir "$workdir"
 
+# GitHub replaces spaces in uploaded file names with dots ("Logifilm Setup 1.0.9.exe"
+# becomes "Logifilm.Setup.1.0.9.exe"), while latest.yml / latest-mac.yml announce the
+# name electron-builder wrote ("Logifilm-Setup-1.0.9.exe"). The updater downloads the
+# announced name, so publish the file (and its .blockmap) under exactly that name.
+for manifest in "$workdir"/latest.yml "$workdir"/latest-mac.yml; do
+  [[ -f "$manifest" ]] || continue
+  while read -r announced; do
+    [[ -n "$announced" ]] || continue
+    for suffix in "" ".blockmap"; do
+      target="$workdir/$announced$suffix"
+      [[ -f "$target" ]] && continue
+      dotted="$workdir/${announced//-/.}$suffix"
+      if [[ -f "$dotted" ]]; then
+        mv "$dotted" "$target"
+        echo "Renamed to $(basename "$target") (name announced in $(basename "$manifest"))"
+      elif [[ -z "$suffix" ]]; then
+        echo "The updater expects '$announced' but no matching file was found." >&2
+        exit 1
+      fi
+    done
+  done < <(grep -E '^\s*(- )?url:|^path:' "$manifest" | sed -E 's/.*(url|path):[[:space:]]*//' | sort -u)
+done
+
 echo "Publishing $TAG to $PUBLIC_REPO…"
 gh release create "$TAG" "$workdir"/* \
   --repo "$PUBLIC_REPO" \
