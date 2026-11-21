@@ -25,7 +25,8 @@ le tag `v1.0.3`. La derniere commande pousse le code et le tag, puis declenche
 
 Quand le workflow est termine, les installateurs sont disponibles dans :
 
-`https://github.com/Bilal-Elhouari/Logifilm/releases`
+`https://github.com/Bilal-Elhouari/Logifilm-releases/releases` (page publique pour les clients, sans code source).
+Une copie est aussi gardée dans les releases du dépôt de code privé.
 
 Tant que cette page ne contient aucune release publiee avec les fichiers
 `latest.yml`, `.exe` et `.blockmap`, l'application affichera simplement
@@ -57,3 +58,27 @@ Tant que cette page ne contient aucune release publiee avec les fichiers
 - Pour distribuer une application macOS sans avertissements de securite, une
   signature Apple Developer et une notarisation sont recommandees.
 - Ne republiez jamais deux releases avec le meme numero de version.
+
+## Dépôt de code privé, installateurs publics
+
+- `Bilal-Elhouari/Logifilm` : code source, **privé**.
+- `Bilal-Elhouari/Logifilm-releases` : installateurs et fichiers de mise à jour, **public**, sans code.
+  Les applications installées (v1.0.9 et plus) y cherchent leurs mises à jour.
+
+Publier une version, en deux temps :
+
+1. Pousser le tag (par exemple `v1.0.9`) : `release.yml` compile les installateurs
+   et les publie dans les releases du dépôt de code.
+2. Quand le workflow est terminé (Mac et Windows), copier la version vers le dépôt public :
+
+   ```bash
+   scripts/publish-public-release.sh v1.0.9
+   ```
+
+   Le script utilise la connexion GitHub de l'ordinateur (`gh auth login`), aucune clé
+   n'est stockée. Il refuse de publier tant qu'un fichier manque (`.exe`, `.dmg`, `.zip`,
+   `latest.yml`, `latest-mac.yml`…), pour que les clients ne voient jamais une version
+   incomplète.
+
+`build.yml` ne fait qu'un contrôle rapide (types, tests, lint) à chaque push. Pour
+compiler les installateurs sans publier : onglet Actions → *Check & Build* → *Run workflow*.

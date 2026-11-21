@@ -5,6 +5,8 @@ on:
     tags:
       - 'v*'
 
+# Installers are published here; scripts/publish-public-release.sh then copies them
+# to the public Bilal-Elhouari/Logifilm-releases repository (no token needed).
 permissions:
   contents: write
 
@@ -37,7 +39,7 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: npm run build:mac -- --publish never
 
-      - name: Publish macOS assets
+      - name: Publish macOS assets (source repository)
         if: matrix.os == 'macos-latest'
         uses: softprops/action-gh-release@v2
         with:
@@ -48,11 +50,12 @@ jobs:
             release/*.zip.blockmap
             release/latest-mac.yml
 
+
       - name: Build Windows
         if: matrix.os == 'windows-latest'
         run: npm run build:win -- --publish never
 
-      - name: Publish Windows assets
+      - name: Publish Windows assets (source repository)
         if: matrix.os == 'windows-latest'
         uses: softprops/action-gh-release@v2
         with:
@@ -60,3 +63,4 @@ jobs:
             release/*.exe
             release/*.exe.blockmap
             release/latest.yml
+

@@ -8,6 +8,9 @@ const isClientMode = process.env.LOGIFILM_CLIENT_MODE === "1";
 const isDev = !app.isPackaged && !isClientMode;
 let mainWindow: BrowserWindow | null = null;
 const TITLE_BAR_HEIGHT = 40;
+// Installers and updates are published in a public repository that holds no source code.
+// The source repository itself is private.
+const RELEASES_REPO = "Bilal-Elhouari/Logifilm-releases";
 const COLOR_PATTERN = /^#[0-9a-f]{6}([0-9a-f]{2})?$/i;
 
 type UpdateStatus = {
@@ -50,7 +53,7 @@ async function checkForMacManualUpdate() {
   sendUpdateStatus({ state: "checking" });
 
   const response = await net.fetch(
-    "https://api.github.com/repos/Bilal-Elhouari/Logifilm/releases/latest",
+    `https://api.github.com/repos/${RELEASES_REPO}/releases/latest`,
     {
       headers: {
         Accept: "application/vnd.github+json",
@@ -310,7 +313,7 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle("open-releases", async () => {
-    await shell.openExternal("https://github.com/Bilal-Elhouari/Logifilm/releases");
+    await shell.openExternal(`https://github.com/${RELEASES_REPO}/releases`);
   });
 
   configureAutoUpdater();
