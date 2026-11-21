@@ -5,13 +5,13 @@ Application de gestion d'équipe pour les productions audiovisuelles.
 ## 📥 Installation
 
 ### Windows
-1. Téléchargez le fichier `.exe` depuis la page [Releases](../../releases)
+1. Téléchargez le fichier `.exe` depuis la page [Releases](https://github.com/Bilal-Elhouari/Logifilm-releases/releases)
 2. Double-cliquez sur le fichier pour installer l'application
 3. L'application est prête à utiliser !
 
 ### macOS
 
-1. Téléchargez le fichier `.dmg` depuis la page [Releases](../../releases)
+1. Téléchargez le fichier `.dmg` depuis la page [Releases](https://github.com/Bilal-Elhouari/Logifilm-releases/releases)
 2. Ouvrez le fichier `.dmg`
 3. Glissez l'application **Logifilm** dans le dossier **Applications**
 

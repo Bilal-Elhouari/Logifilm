@@ -1,12 +1,40 @@
-name: Build & Release
+name: Check & Build
+
+# The source repository is private: GitHub Actions minutes are limited and macOS
+# minutes count ten times. Every push and pull request runs a quick check on Linux;
+# full installer builds run only on demand (Actions tab > Check & Build > Run workflow).
+# Releases are built and published by release.yml when a version tag is pushed.
 
 on:
   push:
     branches: [ "main" ]
+  pull_request:
   workflow_dispatch:
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm install
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Check types, tests and lint
+        run: npm run check
+
   build:
+    if: github.event_name == 'workflow_dispatch'
+    needs: check
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -26,26 +54,18 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Check types and tests
-        run: npm run check
-
-      # WINDOWS
+      # Build only: publishing is done by release.yml on version tags.
       - name: Build for Windows
         if: matrix.os == 'windows-latest'
-        # Build only: publishing is done by release.yml on version tags.
         run: npm run build:win -- --publish never
         env:
           NODE_ENV: production
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # MAC
       - name: Build for Mac
         if: matrix.os == 'macos-latest'
-        # Build only: publishing is done by release.yml on version tags.
         run: npm run build:mac -- --publish never
         env:
           NODE_ENV: production
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Windows Artifact
         if: matrix.os == 'windows-latest'
