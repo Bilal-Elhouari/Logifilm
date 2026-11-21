@@ -3,6 +3,7 @@ import { FileText, FolderOpen, Home, LayoutGrid, LogOut, Shuffle, Users, Wallet 
 import { supabase } from "../../supabaseClient";
 import { installedInterface } from "../shell/InterfacePicker";
 import AccessRequests from "../admin/AccessRequests";
+import TeamManager from "../admin/TeamManager";
 import { Brand, NavItem, NavSection, SidebarFooter, ThemeToggle, type GlassOS } from "./Glass";
 
 export type CompanySection = "home" | "projects" | "project" | "crew" | "contracts" | "payroll";
@@ -53,6 +54,7 @@ export default function CompanySidebar({
 
       <SidebarFooter>
         <AccessRequests os={os} />
+        <TeamManager os={os} />
         <ThemeToggle />
         {/* Development only: the installed app keeps the design of its own system. */}
         {!installedInterface() && (

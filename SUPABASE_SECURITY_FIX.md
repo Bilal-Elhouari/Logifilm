@@ -197,3 +197,28 @@ L'administrateur doit lui-même avoir une licence active pour utiliser l'app.
 - **Confirmation d'e-mail** : si *Authentication → Sign In / Providers → Email → Confirm email* est activé, Supabase envoie d'abord à la personne un e-mail de confirmation (c'est son propre e-mail, sans clé). La demande apparaît dès l'inscription, même avant cette confirmation.
 - **Retirer un administrateur** : `delete from public.platform_admins where user_id = (select id from auth.users where email = '…');`
 - **Revenir sur un refus** : `update public.license_requests set status = 'pending', decided_at = null, decided_by = null where email = '…';` (la demande réapparaît dans l'app).
+
+# Rôles de l'équipe : administrateurs et collègues
+
+Avec `migrations/20261122_team_roles.sql` (à lancer **après** `20261121_account_approval.sql`), il n'y a plus que deux rôles.
+
+| | Administrateur | Collègue |
+|---|---|---|
+| Voir les sociétés | **toutes** | seulement celles qu'un administrateur lui a ouvertes |
+| Créer, renommer, supprimer une société | oui | non |
+| Projets, fiches d'équipe, contrats, paie | oui | oui, dans ses sociétés |
+| Ouvrir ou fermer l'accès d'un collègue à une société | oui (bouton **Team**) | non |
+| Valider les nouveaux comptes | oui (bouton **Requests**) | non |
+| Nommer ou retirer un administrateur | oui (jamais soi-même, jamais le dernier) | non |
+
+## Installation (une seule fois)
+
+1. Supabase → SQL Editor : coller **tout** `migrations/20261122_team_roles.sql` → Run. Le script peut être relancé sans risque.
+2. Rien d'autre à faire : vous restez administrateur, et les comptes déjà validés deviennent des collègues sans société.
+
+## Au quotidien
+
+- **Nouveau compte** : dans **Requests**, choisissez la durée et le rôle (**Colleague** ou **Administrator**), puis **Approve**.
+- **Donner l'accès à une société** : **Team** → cliquez sur le nom de la société sous le collègue (vert = accès ouvert ; cliquez à nouveau pour le retirer).
+- **Nommer un administrateur** : **Team** → **Make admin**. Pour le retirer : **Remove admin**.
+- **Renommer ou supprimer une société** : sur l'accueil, sélectionnez-la puis **Rename** ou **Delete**. La suppression efface aussi ses projets, fiches d'équipe, contrats et PDF : il faut retaper le nom de la société pour confirmer.

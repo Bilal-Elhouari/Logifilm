@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import HomeView from "../components/home/HomeView";
@@ -28,24 +28,21 @@ export default function HomeWindows() {
     checkAuth();
   }, []);
 
-  /* ---------------------------------------------------------
-     FETCH COMPANIES
-  --------------------------------------------------------- */
-  useEffect(() => {
-    async function fetchCompanies() {
-      try {
-        const data = await api.getAllCompanies();
-        if (data) {
-          setCompanies(data.map((c: { name: string }) => c.name));
-        }
-      } catch (error) {
-        console.error("Error fetching companies:", error);
-      } finally {
-        setLoading(false);
-      }
+  /* LOAD COMPANIES */
+  const fetchCompanies = useCallback(async () => {
+    try {
+      const data = await api.getAllCompanies();
+      setCompanies((data || []).map((c) => c.name));
+    } catch (err) {
+      console.error("Error fetching companies:", err);
+    } finally {
+      setLoading(false);
     }
-    fetchCompanies();
   }, []);
+
+  useEffect(() => {
+    void fetchCompanies();
+  }, [fetchCompanies]);
 
   useEffect(() => {
     setProjects([]);
@@ -146,6 +143,7 @@ export default function HomeWindows() {
         newProject,
         setNewProject,
         onEnter: handleEnter,
+        reloadCompanies: fetchCompanies,
       }}
     />
   );

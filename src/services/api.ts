@@ -130,11 +130,68 @@ export const api = {
     getAllCompanies: async () => {
         const { data, error } = await supabase
             .from("companies")
-            .select("name")
+            .select("id, name")
             .order("name");
 
         if (error) throw error;
-        return data;
+        return data as { id: string; name: string }[];
+    },
+
+    /**
+     * Rename a Company (administrators only)
+     */
+    renameCompany: async (id: string, name: string) => {
+        const normalizedName = name.trim();
+        if (!normalizedName) throw new Error("Company name is required.");
+
+        const { data: existing, error: existingError } = await supabase
+            .from("companies")
+            .select("id")
+            .eq("name", normalizedName)
+            .neq("id", id)
+            .limit(1)
+            .maybeSingle();
+
+        if (existingError) throw existingError;
+        if (existing) throw new Error("A company with this name already exists.");
+
+        const { data, error } = await supabase
+            .from("companies")
+            .update({ name: normalizedName })
+            .eq("id", id)
+            .select("id, name");
+
+        if (error) throw error;
+        if (!data || data.length === 0) throw new Error("Only an administrator can rename a company.");
+        return data[0];
+    },
+
+    /**
+     * Delete a Company with its projects, crew members and contracts (administrators only)
+     */
+    deleteCompany: async (id: string) => {
+        // Contract PDFs first: once the crew members are gone, Storage no longer lets anyone read them.
+        const { data: crew, error: crewError } = await supabase
+            .from("crew_members")
+            .select("id")
+            .eq("company_id", id);
+        if (crewError) throw crewError;
+
+        for (const member of crew || []) {
+            const { data: files, error: listError } = await supabase.storage
+                .from("contracts")
+                .list(member.id, { limit: 1000 });
+            if (listError) throw listError;
+            const paths = (files || []).map((file) => `${member.id}/${file.name}`);
+            if (paths.length > 0) {
+                const { error: removeError } = await supabase.storage.from("contracts").remove(paths);
+                if (removeError) throw removeError;
+            }
+        }
+
+        const { error } = await supabase.rpc("admin_delete_company", { p_company_id: id });
+        if (error) throw error;
+        return true;
     },
 
     /**
